@@ -43,10 +43,6 @@ pip install -e ".[dev]"
 uvicorn rastro.api.main:app --reload
 ```
 
-## Desenvolvimento com Claude Code
-
-Abra o terminal na raiz do repositório e rode `claude`. As regras e a arquitetura do projeto estão em [`CLAUDE.md`](CLAUDE.md), que o Claude Code lê automaticamente.
-
 ## Fontes de dados
 
 Somente fontes oficiais e abertas — ver [`docs/fontes-de-dados.md`](docs/fontes-de-dados.md).
