@@ -171,9 +171,10 @@ async function Conteudo({ params }: { params: Promise<{ id: string }> }) {
           .filter(([, url]) => url)
           .map(([nome, url]) => (
             <li key={nome}>
-              <a href={url!} target="_blank" rel="noreferrer" className="break-all text-destaque hover:underline">
-                {nome}: {url}
+              <a href={url!} target="_blank" rel="noreferrer" className="text-destaque hover:underline">
+                {nome}
               </a>
+              <span className="block break-all text-xs text-discreto">{url}</span>
             </li>
           ))}
       </ul>

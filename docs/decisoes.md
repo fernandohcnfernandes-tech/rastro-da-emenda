@@ -48,3 +48,7 @@ Decisões tomadas durante o desenvolvimento quando a especificação não defini
 | 22/11/2026 | **Pergunte à IA** (`/assistente`, `POST /assistente/perguntar`, `rastro/agente/consultor.py`): consultor sobre o portal inteiro com 7 ferramentas somente leitura (panorama, busca de emendas, ranking com dimensões e métricas em lista fechada, município, parlamentar, ficha, cobertura). Mesmo laço, regras de linguagem, cache (invalidado a cada atualização dos dados) e limites de uso do assistente da ficha. | Pedido da equipe: permitir perguntas em linguagem natural sobre os dados públicos sem expor SQL livre. |
 | 22/11/2026 | IA do motor ligada com `claude-haiku-5-5` (`MOTOR_USA_IA=true`), em produção e no ambiente local; avaliação paralela (8 chamadas simultâneas). | Decisão da equipe sobre custo. |
 
+
+## 22/11/2026 — Fontes oficiais da ficha apontam para páginas públicas
+
+O link "transferegov" da ficha e do dossiê apontava para a API bruta (`api.transferegov.gestao.gov.br/...plano_acao_especial?id_plano_acao=eq.N`), que no navegador mostra JSON ou um bloqueio do Cloudflare — o leitor não via a evidência. Passa a apontar para as páginas públicas do módulo Transferências Especiais (`especiais.transferegov.sistema.gov.br/transferencia-especial/plano-acao/detalhe/{id_plano_acao}/dados-basicos`, `/plano-trabalho` e `/relatorio-gestao`), conferidas com o plano 64847. O id é o mesmo `id_plano_acao` da API. O link do Portal da Transparência já estava correto. Cache dos assistentes invalidado (VERSAO 2).

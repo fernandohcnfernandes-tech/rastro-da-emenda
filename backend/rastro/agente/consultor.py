@@ -19,7 +19,7 @@ from rastro.config import config
 from rastro.log import log
 from rastro.motor.ia import _cache_gravar, _cache_ler
 
-VERSAO = "1"
+VERSAO = "2"  # 2: fontes oficiais apontam para as páginas públicas do Transferegov
 LIMITE_LISTA = 20
 
 SISTEMA = """Você é o consultor de dados do Rastro da Emenda ({site}), portal público que acompanha a execução das \

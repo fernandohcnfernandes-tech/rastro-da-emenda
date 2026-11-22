@@ -174,13 +174,24 @@ def ficha_emenda(conn: Connection, id_plano_acao: int) -> dict[str, Any] | None:
         p,
     )
     ficha["linha_do_tempo"] = linha_do_tempo(ficha)
-    ficha["fontes"] = {
-        "transferegov": f"https://api.transferegov.gestao.gov.br/transferenciasespeciais/plano_acao_especial?id_plano_acao=eq.{id_plano_acao}",
-        "portal_transparencia": f"https://portaldatransparencia.gov.br/emendas/detalhe?codigoEmenda={ficha['emenda_numero']}"
-        if ficha.get("emenda_numero")
+    ficha["fontes"] = fontes_oficiais(id_plano_acao, ficha.get("emenda_numero"))
+    return ficha
+
+
+TRANSFEREGOV_PUBLICO = "https://especiais.transferegov.sistema.gov.br/transferencia-especial/plano-acao/detalhe"
+
+
+def fontes_oficiais(id_plano_acao: int, emenda_numero: str | None) -> dict[str, str | None]:
+    """Páginas públicas (legíveis por pessoas) onde a informação pode ser conferida — não a API bruta."""
+    base = f"{TRANSFEREGOV_PUBLICO}/{id_plano_acao}"
+    return {
+        "Transferegov — plano de ação (dados básicos)": f"{base}/dados-basicos",
+        "Transferegov — plano de trabalho": f"{base}/plano-trabalho",
+        "Transferegov — relatório de gestão": f"{base}/relatorio-gestao",
+        "Portal da Transparência — emenda": f"https://portaldatransparencia.gov.br/emendas/detalhe?codigoEmenda={emenda_numero}"
+        if emenda_numero
         else None,
     }
-    return ficha
 
 
 def linha_do_tempo(f: dict[str, Any]) -> list[dict[str, Any]]:

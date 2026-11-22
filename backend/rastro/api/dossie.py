@@ -155,7 +155,8 @@ def gerar(ficha: dict[str, Any], analise_ia: str | None = None) -> bytes:
 
     pdf.secao("Fontes oficiais")
     for nome, url in (ficha.get("fontes") or {}).items():
-        pdf.link_texto(f"{nome}: {url}", url)
+        if url:
+            pdf.link_texto(f"{nome}: {url}", url)
     pdf.ln(3)
     pdf.par(
         "Aviso: este dossiê aponta indícios para apuração, nunca acusações. A ausência de evidência significa "

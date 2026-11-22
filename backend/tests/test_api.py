@@ -299,3 +299,16 @@ def test_consultor_endpoint(cliente, monkeypatch) -> None:
     monkeypatch.setattr(main, "config", lambda: type("C", (), {"anthropic_api_key": "x", "modelo_analise": "m"})())
     assert cliente.post("/assistente/perguntar", json={"pergunta": "Quais UFs?"}).json()["resposta"] == "ok"
     assert cliente.post("/assistente/perguntar", json={"pergunta": "x"}).status_code == 422
+
+
+def test_fontes_oficiais_apontam_para_paginas_publicas():
+    from rastro.api.consultas import fontes_oficiais
+
+    f = fontes_oficiais(64847, "202442770003")
+    urls = [u for u in f.values() if u]
+    assert all("api.transferegov" not in u for u in urls)
+    assert f["Transferegov — plano de ação (dados básicos)"] == (
+        "https://especiais.transferegov.sistema.gov.br/transferencia-especial/plano-acao/detalhe/64847/dados-basicos"
+    )
+    assert f["Portal da Transparência — emenda"].endswith("codigoEmenda=202442770003")
+    assert fontes_oficiais(1, None)["Portal da Transparência — emenda"] is None

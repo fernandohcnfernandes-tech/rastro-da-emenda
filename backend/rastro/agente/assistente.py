@@ -17,7 +17,7 @@ from rastro.config import config
 from rastro.log import log
 from rastro.motor.ia import _cache_gravar, _cache_ler
 
-VERSAO = "1"
+VERSAO = "2"  # 2: fontes oficiais apontam para as páginas públicas do Transferegov
 MAX_ITERACOES = 6
 MAX_TOKENS = 4000
 
