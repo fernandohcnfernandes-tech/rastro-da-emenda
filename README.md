@@ -6,12 +6,13 @@ Projeto da equipe **QKV** para o **Hack Brasil 2026** — trilha **Logística & 
 
 **Demo:** https://rastrodaemenda.com.br
 
-O Rastro da Emenda integra os sistemas federais que registram as **transferências especiais ("emendas Pix")** com as fontes que mostram o que o estado ou município fez com o dinheiro. Para cada plano de ação, de **2024 até hoje** e com **atualização semanal**, o sistema:
+O Rastro da Emenda integra os sistemas federais que registram as **transferências especiais ("emendas Pix")** com as fontes que mostram o que o município, o estado ou o Distrito Federal fez com o dinheiro. Para cada plano de ação, de **2024 até hoje** e com **atualização semanal**, o sistema:
 
 1. coleta valor, objeto, parlamentar, beneficiário, executores, pagamentos, plano de trabalho e relatórios de gestão (Transferegov e Portal da Transparência);
-2. procura evidências de uso do recurso no **PNCP** (contratos e contratações) e, nos municípios de até 20 mil habitantes, também no **Querido Diário**;
-3. usa IA (ou, sem chave configurada, uma regra transparente) para decidir se a evidência corresponde ao objeto e ao valor da emenda;
-4. atribui um **semáforo de execução** (verde, amarelo, vermelho, azul, cinza), gera alertas A1–A7, um **dossiê em PDF** com links para as fontes oficiais e **alertas por e-mail** para quem assina um município ou parlamentar.
+2. procura evidências de uso do recurso no **PNCP** (contratos e contratações do ente e dos executores), nos contratos informados aos **Tribunais de Contas** com dados abertos (RS, SP, PI e RN) e, para qualquer ente coberto sem evidência no PNCP, nos diários oficiais via **Querido Diário**;
+3. usa IA (**Claude Haiku 5.5**; sem chave, uma regra transparente) para decidir se a evidência corresponde ao objeto e ao valor da emenda — documentos que citam o número da emenda entram sempre como candidatos;
+4. atribui um **semáforo de execução** (verde, amarelo, vermelho, azul, cinza), gera alertas A1–A7, um **dossiê em PDF** com links para as fontes oficiais (opcionalmente com parecer da IA) e **alertas por e-mail** para quem assina um município ou parlamentar;
+5. oferece, na ficha de cada emenda, um **assistente de análise** (**Claude Sonnet 5.5**) que consulta o banco do projeto, responde sobre a emenda e os contratos e redige trechos para o dossiê, sempre em linguagem de indício e citando as fontes.
 
 > **Aviso:** o sistema aponta **indícios para apuração**, nunca acusações. "Sem evidência encontrada nas fontes consultadas" significa apenas que nada foi localizado nas bases públicas.
 
@@ -22,18 +23,21 @@ Transferegov (especiais) ─┐
 Portal da Transparência ──┼─► conectores ─► PostgreSQL ─► motor de correspondência ─► avaliação (semáforo + alertas)
 IBGE (população, códigos) ┘                     ▲                    │                         │
 PNCP (contratos/contratações) ──────────────────┤                    ▼                         ▼
-Querido Diário (só municípios ≤ 20 mil hab.) ───┘              IA (anthropic)          API FastAPI ─► Next.js / dossiê PDF / e-mail
+Tribunais de Contas (RS, SP, PI, RN) ───────────┤        IA: Claude Haiku 5.5      API FastAPI ─► Next.js / dossiê PDF / e-mail
+Querido Diário (entes cobertos) ────────────────┤                                         │
+Câmara e Senado (perfil dos autores) ───────────┘                     assistente de análise (Claude Sonnet 5.5)
 ```
 
 ```
 backend/                 Python 3.12 · FastAPI · SQLAlchemy core · psycopg 3 · Pydantic v2
-  rastro/conectores/     transferegov, portal, ibge, pncp, querido_diario (cliente HTTP com retry, limite de taxa e cache)
+  rastro/conectores/     transferegov, portal, ibge, pncp, querido_diario, tce_rs/sp/pi/rn, congresso (cliente HTTP com retry, limite de taxa e cache)
   rastro/db/             schema.sql + migracoes/NNN_*.sql (aplicados por `python -m rastro.db.migrar`)
   rastro/motor/          pre_filtro (CNPJ, data, valor, TF-IDF) · ia (saída estruturada + cache) · regras A1–A7 · semaforo · processar
   rastro/jobs/           carga_inicial (por fonte, retomável) · atualizacao_semanal
-  rastro/api/            endpoints REST e dossiê PDF
+  rastro/agente/         assistente de análise (laço de ferramentas somente leitura sobre o banco)
+  rastro/api/            endpoints REST, dossiê PDF e assistente
   tests/                 pytest com fixtures reais gravadas (nenhum teste acessa a rede)
-frontend/                Next.js 16 (App Router, TypeScript, Tailwind): busca, mapa, fichas, município, parlamentar
+frontend/                Next.js 16 (App Router, TypeScript, Tailwind): visão geral, mapa (municípios e estados), fichas com assistente, municípios, estados e DF, parlamentares, alertas, cobertura das fontes
 docs/                    fontes de dados, regras e semáforo, decisões, relatórios, submissão e relatório final
 ```
 
@@ -45,6 +49,8 @@ Pré-requisitos: Docker, Python 3.12, Node 22.
 
 ```bash
 cp .env.example .env                # preencha as chaves (opcionais: ANTHROPIC_API_KEY, PORTAL_TRANSPARENCIA_API_KEY, SMTP_*)
+                                    # IA no motor: MOTOR_USA_IA=true e MODELO_MOTOR=claude-haiku-5-5
+                                    # chave sem workspace: ANTHROPIC_WORKSPACE_ID=<id do workspace>
 docker compose up -d db             # PostgreSQL 16 (porta em RASTRO_DB_PORTA, padrão 5432)
 cd backend
 python3.12 -m venv .venv && source .venv/bin/activate
@@ -110,16 +116,17 @@ Somente APIs e bases **oficiais e abertas**, respeitando limites de requisição
 | [Portal da Transparência](https://portaldatransparencia.gov.br/api-de-dados) (API ou [arquivo de dados abertos](https://portaldatransparencia.gov.br/download-de-dados/emendas-parlamentares)) | emendas, autor, objeto declarado | 80 req/min |
 | [IBGE](https://servicodados.ibge.gov.br/api/docs) | municípios, população estimada, malha do mapa | 60 req/min |
 | [PNCP](https://pncp.gov.br/api/consulta/swagger-ui/index.html) | contratos e contratações | 30 req/min (medido) |
-| [Querido Diário](https://queridodiario.ok.org.br) | diários oficiais de municípios pequenos | 60 req/min, com cache |
+| [Querido Diário](https://queridodiario.ok.org.br) | diários oficiais dos entes cobertos (≈ 480, incluindo o DF) | 60 req/min, com cache |
 | [Câmara dos Deputados](https://dadosabertos.camara.leg.br/swagger/api.html) e [Senado Federal](https://legis.senado.leg.br/dadosabertos/docs/) | partido, UF, foto e contato institucional dos autores | 60 req/min |
-| Tribunais de Contas — [TCE-RS](https://dados.tce.rs.gov.br), [TCE-SP](https://transparencia.tce.sp.gov.br), [TCE-PI](https://www.tcepi.tc.br/portaldacidadania/dados-abertos), [TCE-RN](https://apidadosabertos.tce.rn.gov.br) | contratos que os municípios informam ao tribunal | arquivos anuais/semestrais; APIs a 30 req/min |
+| Tribunais de Contas — [TCE-RS](https://dados.tce.rs.gov.br), [TCE-SP](https://transparencia.tce.sp.gov.br), [TCE-PI](https://www.tcepi.tc.br/portaldacidadania/dados-abertos), [TCE-RN](https://apidadosabertos.tce.rn.gov.br) | contratos que municípios e órgãos estaduais informam ao tribunal | arquivos anuais/semestrais; APIs a 30 req/min |
 
 ## Limitações
 
-- Municípios com até 20 mil habitantes podem publicar contratações só no diário oficial até abril de 2027; neles a verificação depende do Querido Diário, que cobre parte dos municípios. Sem nenhuma fonte, o status é **azul** (neutro), nunca vermelho.
+- Municípios com até 20 mil habitantes podem publicar contratações só no diário oficial até abril de 2027; neles a verificação depende do Querido Diário e dos Tribunais de Contas com dados abertos, que cobrem parte dos municípios. Sem nenhuma fonte, o status é **azul** (neutro), nunca vermelho.
+- Enquanto o ente não foi consultado no PNCP, a emenda fica **cinza** ("verificação em andamento"); documentos com confiança entre 45% e 59% deixam a emenda **em revisão** (cinza), para conferência humana.
 - A emenda Pix entra no caixa do ente sem conta específica: a ligação com contratos é inferida por CNPJ (beneficiário e executores), data, valor e semelhança de objeto.
 - Contratos abaixo de 10% do repasse não entram na análise; execuções pulverizadas em muitos contratos pequenos tendem a aparecer como amarelo ou vermelho.
-- Sem `ANTHROPIC_API_KEY`, a comparação usa uma heurística transparente (indicada na ficha como "classificação heurística").
+- Sem `ANTHROPIC_API_KEY` (ou com `MOTOR_USA_IA=false`), a comparação usa uma heurística transparente (indicada na ficha como "classificação heurística") e o assistente fica indisponível. A IA pode errar: o sistema sempre mostra o documento oficial para conferência.
 - Dados pessoais: CPF de fornecedor pessoa física é mascarado (`***.456.789-**`) e o nome é omitido já na ingestão.
 
 ## Equipe QKV

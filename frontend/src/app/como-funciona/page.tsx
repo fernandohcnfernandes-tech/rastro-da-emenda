@@ -5,11 +5,11 @@ import type { Status } from "@/lib/tipos";
 export const metadata = { title: "Como funciona" };
 
 const SEMAFORO: [Status, string][] = [
-  ["verde", "Há contrato (PNCP) ou extrato de contrato (diário oficial) compatível com o objeto e o valor da emenda, com confiança de pelo menos 60%."],
+  ["verde", "Há contrato compatível com o objeto e o valor da emenda (no PNCP, no Tribunal de Contas ou em extrato publicado no diário oficial), com confiança de pelo menos 60% e cobrindo ao menos 70% do valor repassado."],
   ["amarelo", "Evidência parcial: licitação ou contratação em andamento sem contrato, ou contratos compatíveis que cobrem menos de 70% do valor repassado."],
   ["vermelho", "Pago há mais de 180 dias e nenhuma evidência nas fontes que cobrem o ente. É um indício para apuração, nunca uma acusação."],
   ["azul", "Ente sem nenhuma fonte pública para verificar: município com até 20 mil habitantes sem registros no PNCP, fora da cobertura do Querido Diário e sem dados abertos de contratos do Tribunal de Contas. Neutro — não é indício de problema."],
-  ["cinza", "Dados insuficientes (sem pagamento, sem objeto ou sem código IBGE) ou pagamento recente, ainda dentro do prazo de 180 dias."],
+  ["cinza", "Dados insuficientes (sem pagamento, sem objeto ou sem código IBGE); pagamento recente, ainda dentro do prazo de 180 dias; verificação em andamento (o ente ainda não foi consultado no PNCP); ou em revisão (documento possivelmente compatível, com confiança entre 45% e 59%, que pede conferência humana)."],
 ];
 
 const ALERTAS: [string, string][] = [
@@ -28,6 +28,8 @@ const FONTES: [string, string, string][] = [
   ["IBGE", "Códigos de municípios e estados, população estimada e malhas do mapa.", "https://servicodados.ibge.gov.br/api/docs"],
   ["PNCP — Portal Nacional de Contratações Públicas", "Contratos e contratações dos CNPJs beneficiários (municípios, estados e DF) e dos executores (secretarias e fundos).", "https://pncp.gov.br/api/consulta/swagger-ui/index.html"],
   ["Câmara dos Deputados e Senado Federal", "Partido, UF, foto e contato institucional dos parlamentares autores.", "https://dadosabertos.camara.leg.br"],
+  ["Querido Diário (Open Knowledge Brasil)", "Extratos de contrato, avisos de licitação, homologações e dispensas nos diários oficiais.", "https://queridodiario.ok.org.br"],
+  ["Tribunais de Contas (RS, SP, PI e RN)", "Contratos que municípios e órgãos estaduais informam ao tribunal, em dados abertos.", "https://dados.tce.rs.gov.br"],
 ];
 
 export default function ComoFunciona() {
@@ -38,7 +40,7 @@ export default function ComoFunciona() {
         <p className="text-apoio">
           O Rastro da Emenda acompanha as <strong>transferências especiais (“emendas Pix”)</strong> destinadas a estados e municípios de 2024
           até hoje. Para cada plano de ação, coletamos os dados federais, procuramos evidências de uso do dinheiro no ente beneficiário e
-          classificamos a execução num semáforo. Os dados são atualizados toda semana.
+          classificamos a execução num semáforo. Cobre municípios, estados e o Distrito Federal, e os dados são atualizados toda semana.
         </p>
       </header>
 
@@ -53,10 +55,10 @@ export default function ComoFunciona() {
         <ol className="mt-2 list-decimal space-y-1 pl-5 text-cinza-claro">
           <li>Coletamos valor, parlamentar, beneficiário, executores, pagamentos e plano de trabalho (Transferegov e Portal da Transparência).</li>
           <li>Procuramos contratos e contratações do CNPJ beneficiário e dos executores no PNCP, a partir do 1º pagamento (menos 30 dias).</li>
-          <li>Para municípios e para o DF sem evidência no PNCP, buscamos extratos de contrato, avisos de licitação, homologações e dispensas nos diários oficiais, pelo Querido Diário.</li>
+          <li>Para qualquer ente coberto pelo Querido Diário sem evidência no PNCP (inclusive o DF, pelo DODF), buscamos extratos de contrato, avisos de licitação, homologações e dispensas nos diários oficiais.</li>
           <li>Em RS, SP, PI e RN, usamos também os contratos que municípios e órgãos estaduais informam ao Tribunal de Contas, em dados abertos.</li>
-          <li>Um pré-filtro (CNPJ, data, faixa de valor e semelhança de texto) seleciona até 5 candidatos por emenda.</li>
-          <li>Uma IA compara cada candidato com o objeto da emenda e devolve compatibilidade, confiança, justificativa e trechos citados. Sem IA configurada, uma regra transparente de semelhança e valor faz essa etapa — e a ficha indica isso.</li>
+          <li>Um pré-filtro (CNPJ, data, faixa de valor e semelhança de texto) seleciona até 5 candidatos por emenda. Documento que cita o número da emenda entra sempre, na frente.</li>
+          <li>A IA (Claude Haiku 5.5, da Anthropic) compara cada candidato com o objeto e o valor da emenda e devolve compatibilidade, confiança, justificativa e trechos citados. Se a IA estiver indisponível, uma regra transparente de semelhança e valor faz essa etapa, e a ficha indica que a classificação foi heurística.</li>
           <li>Regras de alerta e o semáforo são calculados e geram a ficha, o dossiê em PDF e os alertas por e-mail.</li>
         </ol>
       </section>
@@ -131,6 +133,25 @@ export default function ComoFunciona() {
       </section>
 
       <section>
+        <h2 className="mb-2 text-lg font-semibold text-texto">Inteligência artificial</h2>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-cinza-claro">
+          <li>
+            <strong>Classificação dos documentos:</strong> o Claude Haiku 5.5 decide se cada contrato, licitação ou extrato corresponde ao objeto e
+            ao valor da emenda. Só confiança de 60% ou mais conta como evidência; entre 45% e 59%, a emenda fica em revisão.
+          </li>
+          <li>
+            <strong>Assistente de análise</strong> (aba “Assistente IA” na ficha da emenda): o Claude Sonnet 5.5 responde perguntas sobre a emenda e
+            os documentos, consultando apenas o banco do projeto — documentos do ente, outras emendas do beneficiário e detalhes de cada documento. Ele
+            fala em indícios, nunca em acusação, e cita a fonte de cada afirmação com o link oficial.
+          </li>
+          <li>
+            <strong>Dossiê com análise da IA:</strong> versão do PDF que acrescenta um parecer gerado pelo assistente, identificado como tal.
+          </li>
+          <li>A IA pode errar: confira sempre o documento oficial antes de tirar conclusões. Nenhum CPF é enviado à IA.</li>
+        </ul>
+      </section>
+
+      <section>
         <h2 className="mb-2 text-lg font-semibold text-texto">Limitações</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-cinza-claro">
           <li>
@@ -144,10 +165,11 @@ export default function ComoFunciona() {
           </li>
           <li>
             <strong>Estados e DF:</strong> buscamos contratos do CNPJ do governo e dos órgãos executores indicados no plano de ação. Contratos
-            assinados por outros órgãos estaduais só entram quando o Tribunal de Contas publica os dados (RS e PI).
+            assinados por outros órgãos estaduais só entram quando o Tribunal de Contas publica os dados (RS, PI e RN).
           </li>
           <li>O recurso da emenda Pix entra no caixa do ente e não exige conta específica: a ligação com um contrato é feita por objeto, valor, data e CNPJ — por isso falamos em evidência e indício.</li>
           <li>Contratos abaixo de 10% do repasse não são considerados; emendas executadas por meio de vários contratos pequenos podem aparecer como amarelo.</li>
+          <li>A verificação no PNCP é feita ente a ente, no limite de requisições do portal; enquanto um ente não é consultado, suas emendas ficam cinza (“verificação em andamento”).</li>
           <li>Dados pessoais: CPF de fornecedor pessoa física aparece mascarado e o nome é omitido.</li>
         </ul>
       </section>
