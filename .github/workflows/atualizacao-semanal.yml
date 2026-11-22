@@ -2,9 +2,8 @@ name: Atualização semanal
 
 on:
   workflow_dispatch:
-  # Ativar quando o job de atualização semanal estiver pronto:
-  # schedule:
-  #   - cron: "0 6 * * 1"   # segunda-feira, 03h (horário de Brasília)
+  schedule:
+    - cron: "0 6 * * 1"   # segunda-feira, 03h (horário de Brasília = 06h UTC)
 
 jobs:
   atualizar:
@@ -13,14 +12,32 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      PORTAL_TRANSPARENCIA_API_KEY: ${{ secrets.PORTAL_TRANSPARENCIA_API_KEY }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
+      URL_SITE: ${{ vars.URL_SITE }}
     steps:
+      - name: Verificar segredos
+        id: segredos
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL não configurado: use o cron do servidor (ver README) ou cadastre o segredo."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@v4
+        if: steps.segredos.outputs.ok == 'true'
       - uses: actions/setup-python@v5
+        if: steps.segredos.outputs.ok == 'true'
         with:
           python-version: "3.12"
       - run: pip install -e .
-      - run: python -m rastro.jobs.atualizacao_semanal
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          PORTAL_TRANSPARENCIA_API_KEY: ${{ secrets.PORTAL_TRANSPARENCIA_API_KEY }}
+        if: steps.segredos.outputs.ok == 'true'
+      - run: python -m rastro.db.migrar && python -m rastro.jobs.atualizacao_semanal
+        if: steps.segredos.outputs.ok == 'true'

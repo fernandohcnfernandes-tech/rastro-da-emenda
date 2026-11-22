@@ -17,7 +17,7 @@ from rastro.jobs.execucao import Execucao
 from rastro.log import log
 
 FRACAO_MINIMA_VALOR = Decimal("0.10")  # contrato abaixo de 10% do menor repasse nunca passa no pré-filtro
-TRABALHADORES = 2
+TRABALHADORES = 5  # páginas de 500 levam ~13 s: o limite real é a latência, não as 30 req/min
 
 SQL_MONITORADOS = """
 WITH pagos AS (
@@ -118,7 +118,7 @@ def carregar_contratos(desde: date, ate: date | None = None, ufs: list[str] | No
                     feitos.add(cnpj)
                     totais["gravados"] += gravados
                     totais["descartados_valor"] += descartados
-                    if i % 25 == 0 or i == len(alvos):
+                    if i % 5 == 0 or i == len(alvos):
                         execucao.salvar(feitos=sorted(feitos), gravados=totais["gravados"])
                         log(
                             "pncp",
@@ -203,5 +203,51 @@ def carregar_contratacoes(
     except Exception as exc:
         execucao.falhar(repr(exc))
         raise
+    finally:
+        cli.fechar()
+
+
+def atualizar_recentes(dias: int = 14, ate: date | None = None) -> dict[str, Any]:
+    """Atualização semanal: varre o PNCP nacional dos últimos `dias` (sem filtro de CNPJ na API, que é bem mais
+    barato que consultar CNPJ por CNPJ) e guarda só contratos e contratações dos CNPJs monitorados."""
+    ate = ate or date.today()
+    inicio = ate - timedelta(days=dias)
+    monitorados = {a.cnpj: a.menor_valor for a in cnpjs_monitorados(date(2024, 1, 1), None)}
+    cli = pncp.cliente()
+    totais = {"contratos_lidos": 0, "contratos_gravados": 0, "contratacoes_lidas": 0, "contratacoes_gravadas": 0}
+    cnpjs_com_novidade: set[str] = set()
+
+    def filtrar(evid: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return [
+            e
+            for e in evid
+            if e["cnpj_orgao"] in monitorados and valor_relevante(e["valor"], monitorados[e["cnpj_orgao"]])
+        ]
+
+    try:
+        params = {"dataInicial": inicio.strftime("%Y%m%d"), "dataFinal": ate.strftime("%Y%m%d")}
+        for pagina in pncp._paginar(cli, "/v1/contratos", {**params, "tamanhoPagina": pncp.TAMANHO_CONTRATOS}):
+            totais["contratos_lidos"] += len(pagina)
+            evid = filtrar([pncp.evidencia_de_contrato(r) for r in pagina])
+            totais["contratos_gravados"] += _gravar(evid)
+            cnpjs_com_novidade |= {e["cnpj_orgao"] for e in evid}
+        for modalidade in sorted(pncp.MODALIDADES):
+            for pagina in pncp.contratacoes(cli, inicio, ate, modalidade):
+                totais["contratacoes_lidas"] += len(pagina)
+                evid = filtrar([pncp.evidencia_de_contratacao(r) for r in pagina])
+                totais["contratacoes_gravadas"] += _gravar(evid)
+                cnpjs_com_novidade |= {e["cnpj_orgao"] for e in evid}
+        if cnpjs_com_novidade:
+            with transacao() as conn:
+                conn.execute(
+                    text(
+                        "INSERT INTO cobertura_pncp (cnpj, contratos_encontrados, contratos_gravados)"
+                        " SELECT unnest(CAST(:c AS text[])), 1, 0 ON CONFLICT (cnpj) DO UPDATE SET"
+                        " contratos_encontrados = greatest(cobertura_pncp.contratos_encontrados, 1)"
+                    ),
+                    {"c": sorted(cnpjs_com_novidade)},
+                )
+        log("pncp", "recentes:concluido", dias=dias, cnpjs_com_novidade=len(cnpjs_com_novidade), **totais)
+        return {**totais, "cnpjs_com_novidade": len(cnpjs_com_novidade)}
     finally:
         cli.fechar()

@@ -27,6 +27,13 @@ class Config(BaseSettings):
     limite_populacao_pequeno: int = 20_000
     querido_diario_req_por_minuto: int = 60
 
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    email_remetente: str = ""
+    url_site: str = "http://localhost:3000"
+
 
 @lru_cache
 def config() -> Config:

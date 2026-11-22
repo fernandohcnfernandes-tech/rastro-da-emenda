@@ -1,0 +1,65 @@
+# Produção: banco, API e frontend. Uso: docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+# Antes do primeiro uso, defina POSTGRES_PASSWORD no .env (e ajuste DATABASE_URL abaixo se mudar usuário/banco).
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rastro
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: rastro
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rastro -d rastro"]
+      interval: 10s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://rastro:${POSTGRES_PASSWORD}@db:5432/rastro
+    volumes:
+      - ./docs/relatorios:/app/docs/relatorios
+      - dados_prod:/app/dados
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${API_PORTA:-8000}:8000"
+
+  web:
+    build:
+      context: frontend
+    restart: unless-stopped
+    environment:
+      API_URL: http://api:8000
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:${WEB_PORTA:-3000}:3000"
+
+  # Job semanal sob demanda: docker compose -f docker-compose.prod.yml run --rm atualizacao
+  atualizacao:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    profiles: ["jobs"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://rastro:${POSTGRES_PASSWORD}@db:5432/rastro
+    volumes:
+      - ./docs/relatorios:/app/docs/relatorios
+      - dados_prod:/app/dados
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["python", "-m", "rastro.jobs.atualizacao_semanal"]
+
+volumes:
+  pgdata_prod:
+  dados_prod:

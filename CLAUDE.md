@@ -72,12 +72,14 @@ Detalhes das fontes: `docs/fontes-de-dados.md`. Regras e semáforo: `docs/regras
 
 ```bash
 docker compose up -d db
-docker compose exec -T db psql -U rastro -d rastro < backend/rastro/db/schema.sql
 cd backend && source .venv/bin/activate
-python -m rastro.jobs.carga_inicial --fonte transferegov --desde 2024-01-01
+python -m rastro.db.migrar                      # schema.sql + migracoes/
+python -m rastro.jobs.carga_inicial --fonte transferegov --desde 2024-01-01   # também: ibge, portal, pncp, querido_diario
+python -m rastro.motor.processar                # semáforo e alertas
 python -m rastro.jobs.atualizacao_semanal
 uvicorn rastro.api.main:app --reload
 pytest -q
+cd ../frontend && API_URL=http://localhost:8000 npm run dev
 ```
 
 ## 9. Ordem de trabalho
