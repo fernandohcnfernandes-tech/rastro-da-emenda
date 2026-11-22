@@ -64,3 +64,18 @@ def test_ficha_compacta_limita_tamanho() -> None:
     }
     c = assistente._ficha_compacta(f)
     assert len(c["objeto_declarado"]) == 3000 and len(c["metas"]) == 15 and "raw" not in c["evidencias_avaliadas"][0]
+
+
+def test_consultor_usa_laco_e_regras(monkeypatch) -> None:
+    from rastro.agente import consultor
+
+    monkeypatch.setattr(consultor.consultas, "ultima_atualizacao", lambda conn: {"em": "hoje"})
+    monkeypatch.setattr(consultor, "_cache_ler", lambda conn, chave: None)
+    monkeypatch.setattr(consultor, "_cache_gravar", lambda *a: None)
+    monkeypatch.setattr(consultor, "executar_ferramenta", lambda conn, nome, entrada: [{"grupo": "BA"}])
+    cli = ClienteFalso()
+    r = consultor.responder(None, "Qual UF recebeu mais?", cliente=cli)
+    assert r["resposta"].startswith("Há indício") and r["ferramentas"] == ["outras_emendas_do_beneficiario"]
+    sistema = cli.chamadas[0]["system"]
+    assert "Nunca afirme" in sistema and "/emendas/<id_plano_acao>" in sistema and "{site}" not in sistema
+    assert cli.chamadas[0]["tools"] == consultor.FERRAMENTAS

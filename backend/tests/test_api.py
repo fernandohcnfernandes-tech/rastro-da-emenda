@@ -270,3 +270,32 @@ def test_assistente_sem_chave_e_com_resposta(cliente, monkeypatch) -> None:
     assert cliente.post("/emendas/1/assistente", json={"pergunta": "x"}).status_code == 422
     pdf = cliente.get("/emendas/1/dossie.pdf", params={"analise": "true"})
     assert pdf.status_code == 200 and pdf.content.startswith(b"%PDF")
+
+
+def test_ferramentas_do_consultor_no_banco(cliente) -> None:
+    from rastro.agente import consultor
+
+    with conexao.engine().connect() as conn:
+        r = consultor.executar_ferramenta(conn, "ranking", {"agrupar_por": "uf", "metrica": "repassado"})
+        assert r[0]["grupo"] == "RN" and r[0]["repassado"] == 800000 and r[0]["vermelho"] == 1
+        assert consultor.executar_ferramenta(conn, "ranking", {"agrupar_por": "parlamentar", "metrica": "vermelho"})
+        b = consultor.executar_ferramenta(conn, "buscar_emendas", {"uf": "RN", "limite": 5})
+        assert b["total"] == 3 and set(b["itens"][0]) >= {"id_plano_acao", "status", "repassado"}
+        m = consultor.executar_ferramenta(conn, "dados_do_municipio", {"municipio": "exemplo"})
+        assert m["codigo_ibge"] == "2401859" and len(m["emendas"]) == 2
+        assert consultor.executar_ferramenta(conn, "ficha_da_emenda", {"id_plano_acao": 999}) == {
+            "erro": "emenda não encontrada"
+        }
+        with pytest.raises(KeyError):
+            consultor.executar_ferramenta(conn, "ranking", {"agrupar_por": "x; DROP", "metrica": "emendas"})
+        with pytest.raises(ValueError):
+            consultor.executar_ferramenta(conn, "ranking", {"agrupar_por": "uf", "metrica": "1; DROP"})
+
+
+def test_consultor_endpoint(cliente, monkeypatch) -> None:
+    from rastro.api import main
+
+    monkeypatch.setattr(main.consultor, "responder", lambda conn, p, h: {"resposta": "ok", "ferramentas": []})
+    monkeypatch.setattr(main, "config", lambda: type("C", (), {"anthropic_api_key": "x", "modelo_analise": "m"})())
+    assert cliente.post("/assistente/perguntar", json={"pergunta": "Quais UFs?"}).json()["resposta"] == "ok"
+    assert cliente.post("/assistente/perguntar", json={"pergunta": "x"}).status_code == 422

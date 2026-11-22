@@ -185,6 +185,56 @@ def _criar(cli, **kw):
         return cli.messages.create(**kw)
 
 
+def conversar(cli, modelo: str, sistema: str, ferramentas: list, mensagens: list, executar, msg_recusa: str):
+    """Laço manual de ferramentas. Devolve (texto, ferramentas usadas, última resposta)."""
+    usadas: list[str] = []
+    resposta = None
+    for _ in range(MAX_ITERACOES):
+        resposta = _criar(
+            cli,
+            model=modelo,
+            max_tokens=MAX_TOKENS,
+            system=sistema,
+            tools=ferramentas,
+            messages=mensagens,
+            output_config={"effort": "medium"},
+        )
+        if resposta.stop_reason == "refusal":
+            break
+        if resposta.stop_reason == "pause_turn":
+            mensagens.append({"role": "assistant", "content": resposta.content})
+            continue
+        chamadas = [b for b in resposta.content if getattr(b, "type", None) == "tool_use"]
+        if resposta.stop_reason != "tool_use" or not chamadas:
+            break
+        mensagens.append({"role": "assistant", "content": resposta.content})
+        resultados = []
+        for chamada in chamadas:
+            usadas.append(chamada.name)
+            try:
+                saida = executar(chamada.name, dict(chamada.input or {}))
+                resultados.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": chamada.id,
+                        "content": json.dumps(saida, ensure_ascii=False, default=str)[:15000],
+                    }
+                )
+            except Exception as exc:
+                log("agente", "ferramenta:erro", ferramenta=chamada.name, erro=repr(exc)[:200])
+                resultados.append(
+                    {"type": "tool_result", "tool_use_id": chamada.id, "content": "erro ao consultar", "is_error": True}
+                )
+        mensagens.append({"role": "user", "content": resultados})
+
+    if resposta is None or resposta.stop_reason == "refusal":
+        texto = msg_recusa
+    else:
+        texto = "\n".join(b.text for b in resposta.content if getattr(b, "type", None) == "text").strip()
+        texto = texto or "Não encontrei informação suficiente nos dados disponíveis para responder."
+    return texto, usadas, resposta
+
+
 def responder(
     conn: Connection, id_plano: int, pergunta: str, historico: list[dict[str, str]] | None = None, cliente=None
 ) -> dict[str, Any]:
@@ -218,52 +268,15 @@ def responder(
             mensagens.append({"role": "user" if m["papel"] == "usuario" else "assistant", "content": m["texto"][:4000]})
     mensagens.append({"role": "user", "content": pergunta[:2000]})
 
-    cli = cliente or _cliente()
-    usadas: list[str] = []
-    resposta = None
-    for _ in range(MAX_ITERACOES):
-        resposta = _criar(
-            cli,
-            model=modelo,
-            max_tokens=MAX_TOKENS,
-            system=SISTEMA,
-            tools=FERRAMENTAS,
-            messages=mensagens,
-            output_config={"effort": "medium"},
-        )
-        if resposta.stop_reason == "refusal":
-            break
-        if resposta.stop_reason == "pause_turn":
-            mensagens.append({"role": "assistant", "content": resposta.content})
-            continue
-        chamadas = [b for b in resposta.content if getattr(b, "type", None) == "tool_use"]
-        if resposta.stop_reason != "tool_use" or not chamadas:
-            break
-        mensagens.append({"role": "assistant", "content": resposta.content})
-        resultados = []
-        for chamada in chamadas:
-            usadas.append(chamada.name)
-            try:
-                saida = executar_ferramenta(conn, id_plano, ficha, chamada.name, dict(chamada.input or {}))
-                resultados.append(
-                    {
-                        "type": "tool_result",
-                        "tool_use_id": chamada.id,
-                        "content": json.dumps(saida, ensure_ascii=False, default=str)[:12000],
-                    }
-                )
-            except Exception as exc:
-                log("agente", "ferramenta:erro", ferramenta=chamada.name, erro=repr(exc)[:200])
-                resultados.append(
-                    {"type": "tool_result", "tool_use_id": chamada.id, "content": "erro ao consultar", "is_error": True}
-                )
-        mensagens.append({"role": "user", "content": resultados})
-
-    if resposta is None or resposta.stop_reason == "refusal":
-        texto = "Não consegui responder a esta pergunta. Reformule com foco na emenda, nos contratos ou no dossiê."
-    else:
-        texto = "\n".join(b.text for b in resposta.content if getattr(b, "type", None) == "text").strip()
-        texto = texto or "Não encontrei informação suficiente nos dados disponíveis para responder."
+    texto, usadas, resposta = conversar(
+        cliente or _cliente(),
+        modelo,
+        SISTEMA,
+        FERRAMENTAS,
+        mensagens,
+        lambda nome, entrada: executar_ferramenta(conn, id_plano, ficha, nome, entrada),
+        "Não consegui responder a esta pergunta. Reformule com foco na emenda, nos contratos ou no dossiê.",
+    )
     resultado = {"resposta": texto, "ferramentas": usadas, "modelo": getattr(resposta, "model", modelo)}
     if resposta is not None and resposta.stop_reason != "refusal":
         _cache_gravar(conn, chave, modelo, resultado)

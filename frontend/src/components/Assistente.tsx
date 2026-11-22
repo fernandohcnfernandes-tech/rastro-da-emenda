@@ -5,40 +5,110 @@ import { Fragment, useEffect, useRef, useState } from "react";
 
 type Mensagem = { papel: "usuario" | "assistente"; texto: string };
 
-const SUGESTOES = [
+const SUGESTOES_EMENDA = [
   "Resuma a execução desta emenda.",
   "Os documentos encontrados correspondem ao objeto da emenda?",
   "O que ainda falta para comprovar a execução?",
   "Redija um parágrafo para o dossiê.",
 ];
 
-/** Texto da IA com **negrito**, listas e links clicáveis — sem HTML bruto. */
-function Texto({ conteudo }: { conteudo: string }) {
-  const linhas = conteudo.split("\n");
-  const inline = (t: string) =>
-    t.split(/(https?:\/\/[^\s)]+|\*\*[^*]+\*\*)/g).map((parte, i) => {
-      if (/^https?:\/\//.test(parte))
-        return (
-          <a key={i} href={parte} target="_blank" rel="noreferrer" className="break-all text-destaque underline">
-            {parte}
-          </a>
-        );
-      if (/^\*\*.+\*\*$/.test(parte)) return <strong key={i}>{parte.slice(2, -2)}</strong>;
-      return <Fragment key={i}>{parte}</Fragment>;
-    });
-  return (
-    <div className="space-y-2 text-sm leading-relaxed">
-      {linhas.map((l, i) => {
-        const t = l.replace(/^#+\s*/, "").trim();
-        if (!t) return null;
-        if (/^[-*•]\s+/.test(t)) return <p key={i} className="pl-4 -indent-3">• {inline(t.replace(/^[-*•]\s+/, ""))}</p>;
-        return <p key={i}>{inline(t)}</p>;
-      })}
-    </div>
-  );
+const LINK = "break-all text-destaque underline";
+
+/** Negrito, links markdown e URLs soltas — sem HTML bruto. Links só http(s). */
+function inline(t: string) {
+  return t.split(/(\[[^\]]+\]\(https?:\/\/[^\s)]+\)|https?:\/\/[^\s)|]+|\*\*[^*]+\*\*)/g).map((parte, i) => {
+    const md = parte.match(/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
+    if (md)
+      return (
+        <a key={i} href={md[2]} target="_blank" rel="noreferrer" className={LINK}>
+          {md[1].replace(/\*\*/g, "")}
+        </a>
+      );
+    if (/^https?:\/\//.test(parte))
+      return (
+        <a key={i} href={parte} target="_blank" rel="noreferrer" className={LINK}>
+          {parte}
+        </a>
+      );
+    if (/^\*\*.+\*\*$/.test(parte)) return <strong key={i}>{inline(parte.slice(2, -2))}</strong>;
+    return <Fragment key={i}>{parte}</Fragment>;
+  });
 }
 
-export function Assistente({ idPlano }: { idPlano: number }) {
+const celulas = (linha: string) => linha.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+
+/** Texto da IA: parágrafos, títulos, listas e tabelas markdown. */
+function Texto({ conteudo }: { conteudo: string }) {
+  const linhas = conteudo.split("\n");
+  const blocos: React.ReactNode[] = [];
+  for (let i = 0; i < linhas.length; i++) {
+    const bruta = linhas[i].trim();
+    if (bruta.startsWith("|")) {
+      const tabela: string[] = [];
+      while (i < linhas.length && linhas[i].trim().startsWith("|")) tabela.push(linhas[i++].trim());
+      i--;
+      const [cab, ...resto] = tabela;
+      const corpo = resto.filter((l) => !/^\|[\s:|-]+\|?$/.test(l));
+      blocos.push(
+        <div key={i} className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-borda">
+                {celulas(cab).map((c, j) => (
+                  <th key={j} className="px-2 py-1.5 font-semibold text-forte">
+                    {inline(c)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {corpo.map((l, k) => (
+                <tr key={k} className="border-b border-borda/50">
+                  {celulas(l).map((c, j) => (
+                    <td key={j} className="px-2 py-1.5 align-top">
+                      {inline(c)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+      );
+      continue;
+    }
+    const titulo = /^#+\s+/.test(bruta);
+    const t = bruta.replace(/^#+\s*/, "");
+    if (!t || /^-{3,}$/.test(t)) continue;
+    if (/^([-*•]|\d+[.)])\s+/.test(t)) {
+      const marcador = t.match(/^(\d+[.)])/)?.[1] ?? "•";
+      blocos.push(
+        <p key={i} className="pl-4 -indent-3">
+          {marcador} {inline(t.replace(/^([-*•]|\d+[.)])\s+/, ""))}
+        </p>,
+      );
+    } else blocos.push(<p key={i} className={titulo ? "pt-1 font-semibold text-forte" : undefined}>{inline(t)}</p>);
+  }
+  return <div className="space-y-2 text-sm leading-relaxed">{blocos}</div>;
+}
+
+type Props = {
+  /** Emenda em análise; sem ela, o chat consulta os dados do portal como um todo. */
+  idPlano?: number;
+  sugestoes?: string[];
+  titulo?: string;
+  descricao?: string;
+  placeholder?: string;
+};
+
+export function Assistente({
+  idPlano,
+  sugestoes = SUGESTOES_EMENDA,
+  titulo = "Assistente de análise",
+  descricao = "Responde com base nesta ficha e nos documentos coletados. Aponta indícios, não acusa. Confira as fontes.",
+  placeholder = "Pergunte sobre a emenda, os contratos ou peça um texto para o dossiê",
+}: Props) {
+  const endpoint = idPlano ? `/api/emendas/${idPlano}/assistente` : "/api/assistente/perguntar";
   const [disponivel, setDisponivel] = useState<boolean | null>(null);
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [pergunta, setPergunta] = useState("");
@@ -63,7 +133,7 @@ export function Assistente({ idPlano }: { idPlano: number }) {
     const historico = mensagens.slice(-8);
     setMensagens((m) => [...m, { papel: "usuario", texto: q }]);
     try {
-      const resp = await fetch(`/api/emendas/${idPlano}/assistente`, {
+      const resp = await fetch(endpoint, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ pergunta: q, historico }),
@@ -88,14 +158,14 @@ export function Assistente({ idPlano }: { idPlano: number }) {
           <Sparkles className="h-4 w-4 text-destaque" />
         </span>
         <div>
-          <p className="text-sm font-semibold">Assistente de análise</p>
-          <p className="text-xs text-discreto">Responde com base nesta ficha e nos documentos coletados. Aponta indícios, não acusa. Confira as fontes.</p>
+          <p className="text-sm font-semibold">{titulo}</p>
+          <p className="text-xs text-discreto">{descricao}</p>
         </div>
       </div>
       <div className="max-h-[520px] min-h-[220px] space-y-4 overflow-y-auto px-5 py-4" aria-live="polite">
         {mensagens.length === 0 && (
           <div className="flex flex-wrap gap-2">
-            {SUGESTOES.map((s) => (
+            {sugestoes.map((s) => (
               <button
                 key={s}
                 type="button"
@@ -142,7 +212,7 @@ export function Assistente({ idPlano }: { idPlano: number }) {
           onChange={(e) => setPergunta(e.target.value)}
           maxLength={2000}
           disabled={!disponivel || enviando}
-          placeholder="Pergunte sobre a emenda, os contratos ou peça um texto para o dossiê"
+          placeholder={placeholder}
           className="h-10 min-w-0 flex-1 rounded-lg border border-borda bg-campo px-3 text-sm placeholder:text-discreto focus:border-primaria focus:outline-none"
         />
         <button

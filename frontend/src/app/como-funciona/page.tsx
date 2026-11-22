@@ -145,6 +145,10 @@ export default function ComoFunciona() {
             fala em indícios, nunca em acusação, e cita a fonte de cada afirmação com o link oficial.
           </li>
           <li>
+            <strong>Pergunte à IA</strong> (menu Análise): o mesmo assistente responde perguntas gerais sobre os dados do portal — rankings por
+            UF, município, parlamentar ou partido, situação de um município, emendas por tema — e cita as fichas usadas.
+          </li>
+          <li>
             <strong>Dossiê com análise da IA:</strong> versão do PDF que acrescenta um parecer gerado pelo assistente, identificado como tal.
           </li>
           <li>A IA pode errar: confira sempre o documento oficial antes de tirar conclusões. Nenhum CPF é enviado à IA.</li>

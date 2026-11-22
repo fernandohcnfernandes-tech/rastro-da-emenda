@@ -2,6 +2,7 @@
 
 import {
   AlertTriangle,
+  MessageSquareText,
   BookOpen,
   Building2,
   ChevronsLeft,
@@ -39,6 +40,7 @@ const GRUPOS: { titulo: string; itens: Item[] }[] = [
   {
     titulo: "Análise",
     itens: [
+      { href: "/assistente", rotulo: "Pergunte à IA", icone: MessageSquareText },
       { href: "/alertas", rotulo: "Alertas", icone: AlertTriangle },
       { href: "/cobertura", rotulo: "Cobertura das fontes", icone: ShieldCheck },
     ],
@@ -56,6 +58,7 @@ const TITULOS: [RegExp, string][] = [
   [/^\/municipios/, "Municípios"],
   [/^\/parlamentares\/.+/, "Parlamentar"],
   [/^\/parlamentares/, "Parlamentares"],
+  [/^\/assistente/, "Pergunte à IA"],
   [/^\/alertas/, "Alertas"],
   [/^\/cobertura/, "Cobertura das fontes"],
   [/^\/como-funciona/, "Como funciona"],

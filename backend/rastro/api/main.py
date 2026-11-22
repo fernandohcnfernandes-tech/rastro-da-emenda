@@ -14,7 +14,7 @@ from pydantic import BaseModel, field_validator
 from sqlalchemy import Connection, text
 
 from rastro import __version__
-from rastro.agente import assistente
+from rastro.agente import assistente, consultor
 from rastro.api import consultas, dossie
 from rastro.config import config
 from rastro.db.conexao import engine
@@ -268,6 +268,17 @@ def perguntar(id_plano_acao: int, corpo: Pergunta, request: Request, conn: Conex
         )
     except LookupError:
         raise HTTPException(404, "Plano de ação não encontrado") from None
+    conn.commit()
+    return resultado
+
+
+@app.post("/assistente/perguntar")
+def perguntar_portal(corpo: Pergunta, request: Request, conn: Conexao) -> dict:
+    """Consultor de IA sobre os dados do portal como um todo."""
+    if not config().anthropic_api_key:
+        raise HTTPException(503, "Assistente indisponível: IA não configurada")
+    _limitar(request)
+    resultado = consultor.responder(conn, corpo.pergunta, [m.model_dump() for m in corpo.historico[-8:]])
     conn.commit()
     return resultado
 

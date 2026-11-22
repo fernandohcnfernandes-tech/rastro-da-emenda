@@ -25,7 +25,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ caminho: string
 export async function POST(req: Request, ctx: { params: Promise<{ caminho: string[] }> }) {
   const { caminho } = await ctx.params;
   const rota = caminho.join("/");
-  if (rota !== "assinaturas" && !/^emendas\/\d+\/assistente$/.test(rota)) {
+  if (rota !== "assinaturas" && rota !== "assistente/perguntar" && !/^emendas\/\d+\/assistente$/.test(rota)) {
     return Response.json({ detail: "não permitido" }, { status: 405 });
   }
   return repassar(req, caminho);
