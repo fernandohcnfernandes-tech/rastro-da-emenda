@@ -49,6 +49,8 @@ Exemplo: `GET .../plano_acao_especial?ano_plano_acao=gte.2024&limit=1000&offset=
 
 Filtrar pelo tipo de emenda individual de transferência especial e ligar a `plano_acao_especial` por ano + número da emenda.
 
+**Confirmado em 22/11/2026:** sem chave a API responde `401 {"Erro na API": "Chave de API não informada!..."}`, o que confirma o cabeçalho `chave-api-dados`. Alternativa oficial sem chave: `https://portaldatransparencia.gov.br/download-de-dados/emendas-parlamentares/UNICO` → `EmendasParlamentares.zip` (CSV `;`, latin-1). `EmendasParlamentares.csv` tem uma linha por emenda (`Código da Emenda` = `numero_emenda_parlamentar_plano_acao` do Transferegov; tipo `Emenda Individual - Transferências Especiais`); `EmendasParlamentares_PlanodeTrabalhoTransferenciasEspeciais.csv` tem uma linha por plano de ação (`Plano de Ação` = `codigo_plano_acao` + `/ano`) com o **Detalhamento do Objeto**.
+
 ## 3. PNCP — API de consultas
 
 - Base: `https://pncp.gov.br/api/consulta`
@@ -81,7 +83,7 @@ Usar somente quando: município ≤ 20 mil habitantes **e** sem evidência no PN
 ## 5. IBGE
 
 - Municípios e códigos: `https://servicodados.ibge.gov.br/api/v1/localidades/municipios`
-- População (estimativa mais recente): API de agregados do SIDRA (`https://servicodados.ibge.gov.br/api/v3/agregados/...`) **(confirmar agregado e variável da estimativa populacional)**.
+- População (estimativa mais recente): agregado **6579**, variável **9324** ("População residente estimada"): `/api/v3/agregados/6579/periodos/{ano}/variaveis/9324?localidades=N6[all]` (municípios) ou `N3[all]` (UFs). Confirmado em 22/11/2026; períodos sem publicação voltam vazios.
 - Uso: marcar municípios com até 20 mil habitantes e ligar CNPJ ↔ código IBGE (por nome + UF do beneficiário).
 
 ## 6. Apoio (opcional)

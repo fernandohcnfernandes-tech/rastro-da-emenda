@@ -1,0 +1,53 @@
+[
+ {
+  "id": "9324",
+  "variavel": "População residente estimada",
+  "unidade": "Pessoas",
+  "resultados": [
+   {
+    "classificacoes": [],
+    "series": [
+     {
+      "localidade": {
+       "id": "1400100",
+       "nivel": {
+        "id": "N6",
+        "nome": "Município"
+       },
+       "nome": "Boa Vista (RR)"
+      },
+      "serie": {
+       "2025": "485477"
+      }
+     },
+     {
+      "localidade": {
+       "id": "2211001",
+       "nivel": {
+        "id": "N6",
+        "nome": "Município"
+       },
+       "nome": "Teresina (PI)"
+      },
+      "serie": {
+       "2025": "905692"
+      }
+     },
+     {
+      "localidade": {
+       "id": "1100015",
+       "nivel": {
+        "id": "N6",
+        "nome": "Município"
+       },
+       "nome": "Alta Floresta D'Oeste (RO)"
+      },
+      "serie": {
+       "2025": "22787"
+      }
+     }
+    ]
+   }
+  ]
+ }
+]

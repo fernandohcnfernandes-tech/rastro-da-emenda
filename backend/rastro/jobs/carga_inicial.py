@@ -28,6 +28,14 @@ def main(argv: list[str] | None = None) -> None:
         from rastro.jobs.carga_transferegov import carregar
 
         carregar(desde, ufs, retomar=retomar)
+    elif args.fonte == "ibge":
+        from rastro.jobs.carga_ibge_portal import carregar_ibge
+
+        carregar_ibge()
+    elif args.fonte == "portal":
+        from rastro.jobs.carga_ibge_portal import carregar_portal
+
+        carregar_portal(desde)
     else:
         raise SystemExit(f"fonte {args.fonte} ainda não implementada")
 
