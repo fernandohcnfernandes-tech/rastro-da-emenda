@@ -29,9 +29,7 @@ class Execucao:
             if anterior:
                 self.id = anterior.id
                 self.progresso = anterior.progresso or {}
-                conn.execute(
-                    text("UPDATE execucao_job SET status = 'rodando' WHERE id = :id"), {"id": self.id}
-                )
+                conn.execute(text("UPDATE execucao_job SET status = 'rodando' WHERE id = :id"), {"id": self.id})
             else:
                 self.id = conn.execute(
                     text("INSERT INTO execucao_job (tipo) VALUES (:t) RETURNING id"), {"t": tipo}

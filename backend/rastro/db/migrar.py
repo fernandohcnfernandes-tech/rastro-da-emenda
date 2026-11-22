@@ -24,8 +24,7 @@ def aplicar() -> list[str]:
     with transacao() as conn:
         conn.exec_driver_sql((PASTA / "schema.sql").read_text(encoding="utf-8"))
         conn.exec_driver_sql(
-            "CREATE TABLE IF NOT EXISTS schema_migracao "
-            "(nome text PRIMARY KEY, aplicada_em timestamptz DEFAULT now())"
+            "CREATE TABLE IF NOT EXISTS schema_migracao (nome text PRIMARY KEY, aplicada_em timestamptz DEFAULT now())"
         )
         feitas = {r[0] for r in conn.execute(text("SELECT nome FROM schema_migracao"))}
         for arq in migracoes():

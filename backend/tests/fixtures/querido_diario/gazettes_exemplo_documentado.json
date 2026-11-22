@@ -1,0 +1,7 @@
+{
+ "total_gazettes": 2,
+ "gazettes": [
+  {"territory_id": "2401859", "date": "2025-03-14", "scraped_at": "2025-03-15T04:10:00", "url": "https://exemplo.ok.org.br/2401859/2025-03-14/edicao.pdf", "territory_name": "Exemplo do Norte", "state_code": "RN", "excerpts": ["EXTRATO DE CONTRATO Nº 012/2025. Objeto: pavimentação em paralelepípedo da Rua das Flores. Valor: R$ 348.500,00. Contratada: CONSTRUTORA EXEMPLO LTDA.", "AVISO DE LICITAÇÃO Pregão Eletrônico 03/2025 aquisição de ambulância"], "edition": "1520", "is_extra_edition": false, "txt_url": "https://exemplo.ok.org.br/2401859/2025-03-14/edicao.txt"},
+  {"territory_id": "2401859", "date": "2025-01-20", "scraped_at": "2025-01-21T04:10:00", "url": "https://exemplo.ok.org.br/2401859/2025-01-20/edicao.pdf", "territory_name": "Exemplo do Norte", "state_code": "RN", "excerpts": ["TERMO DE HOMOLOGAÇÃO da Tomada de preços para pavimentação"], "edition": null, "is_extra_edition": false, "txt_url": null}
+ ]
+}

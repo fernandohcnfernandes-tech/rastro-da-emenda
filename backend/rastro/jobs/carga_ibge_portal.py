@@ -161,9 +161,7 @@ def _carregar_portal_arquivo(desde: date, arquivo: Path | None) -> dict[str, Any
         objetos = [
             {"c": o["codigo_plano_acao"], "o": o["objeto"]}
             for o in portal.objetos_declarados_do_arquivo(zip_path)
-            if o["objeto"]
-            and o["codigo_plano_acao"][4:8].isdigit()
-            and int(o["codigo_plano_acao"][4:8]) >= desde.year
+            if o["objeto"] and o["codigo_plano_acao"][4:8].isdigit() and int(o["codigo_plano_acao"][4:8]) >= desde.year
         ]
         with transacao() as conn:
             conn.execute(text("CREATE TEMP TABLE tmp_objeto (c text, o text) ON COMMIT DROP"))
@@ -191,10 +189,7 @@ def _carregar_portal_api(desde: date, execucao: Execucao) -> dict[str, Any]:
                 execucao.salvar(**{f"pagina_{ano}": pagina + 1})
         with transacao() as conn:
             codigos = [
-                r[0]
-                for r in conn.execute(
-                    text("SELECT codigo_emenda FROM emenda WHERE ano >= :a"), {"a": desde.year}
-                )
+                r[0] for r in conn.execute(text("SELECT codigo_emenda FROM emenda WHERE ano >= :a"), {"a": desde.year})
             ]
         for codigo in codigos:
             docs = [portal.documento_da_api(codigo, d) for d in portal.documentos_api(cli, codigo)]

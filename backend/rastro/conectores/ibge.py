@@ -58,9 +58,7 @@ def chave_nome(nome: str) -> str:
     return re.sub(r"[^A-Z0-9]", "", texto)
 
 
-def resolver_municipio(
-    nome: str, uf: str | None, indice: dict[tuple[str, str], str]
-) -> tuple[str | None, str | None]:
+def resolver_municipio(nome: str, uf: str | None, indice: dict[tuple[str, str], str]) -> tuple[str | None, str | None]:
     """Devolve (codigo_ibge, metodo) para um nome de ente + UF usando o índice {(uf, chave): codigo}."""
     if not uf:
         return None, None
@@ -110,9 +108,7 @@ def baixar_municipios(cli: ClienteHttp) -> list[dict[str, Any]]:
     return [municipio(r) for r in cli.get("/v1/localidades/municipios", params={"view": "nivelado"})]
 
 
-def periodo_mais_recente_com_dados(
-    cli: ClienteHttp, nivel: str = "N6"
-) -> tuple[str, dict[str, tuple[int, int]]]:
+def periodo_mais_recente_com_dados(cli: ClienteHttp, nivel: str = "N6") -> tuple[str, dict[str, tuple[int, int]]]:
     """Procura, do período mais novo para o mais antigo, a primeira estimativa publicada."""
     periodos = [p["id"] for p in cli.get(f"/v3/agregados/{AGREGADO_POPULACAO}/periodos")]
     for periodo in sorted(periodos, reverse=True):

@@ -5,8 +5,11 @@ Todos os conectores devem usar esta classe para respeitar os limites e os termos
 
 from __future__ import annotations
 
+import hashlib
+import json
 import threading
 import time
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -46,7 +49,13 @@ class ClienteHttp:
         por_minuto: int = 120,
         cabecalhos: dict[str, str] | None = None,
         timeout: float = 60.0,
+        cache_dir: Path | None = None,
+        cache_ttl_s: int = 7 * 24 * 3600,
     ) -> None:
+        self.cache_dir = cache_dir
+        self.cache_ttl_s = cache_ttl_s
+        if cache_dir:
+            cache_dir.mkdir(parents=True, exist_ok=True)
         self.limite = LimiteTaxa(por_minuto)
         self.http = httpx.Client(
             base_url=base_url,
@@ -54,13 +63,29 @@ class ClienteHttp:
             timeout=timeout,
         )
 
+    def _arquivo_cache(self, caminho: str, params: dict[str, Any] | None) -> Path | None:
+        if not self.cache_dir:
+            return None
+        chave = json.dumps([caminho, sorted((params or {}).items())], default=str, ensure_ascii=False)
+        return self.cache_dir / f"{hashlib.sha256(chave.encode()).hexdigest()}.json"
+
+    def get(self, caminho: str, params: dict[str, Any] | None = None) -> Any:
+        """GET com cache opcional em disco (respostas válidas por `cache_ttl_s`)."""
+        arquivo = self._arquivo_cache(caminho, params)
+        if arquivo and arquivo.exists() and time.time() - arquivo.stat().st_mtime < self.cache_ttl_s:
+            return json.loads(arquivo.read_text(encoding="utf-8"))
+        dados = self._get_rede(caminho, params)
+        if arquivo is not None:
+            arquivo.write_text(json.dumps(dados, ensure_ascii=False), encoding="utf-8")
+        return dados
+
     @retry(
         retry=retry_if_exception_type(ErroTemporario),
         wait=wait_exponential(multiplier=2, min=2, max=120),
         stop=stop_after_attempt(6),
         reraise=True,
     )
-    def get(self, caminho: str, params: dict[str, Any] | None = None) -> Any:
+    def _get_rede(self, caminho: str, params: dict[str, Any] | None = None) -> Any:
         self.limite.aguardar()
         try:
             resp = self.http.get(caminho, params=params)

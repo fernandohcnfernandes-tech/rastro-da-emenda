@@ -19,7 +19,7 @@ class Config(BaseSettings):
     transferegov_base_url: str = "https://api.transferegov.gestao.gov.br/transferenciasespeciais"
     portal_base_url: str = "https://api.portaldatransparencia.gov.br/api-de-dados"
     pncp_base_url: str = "https://pncp.gov.br/api/consulta"
-    querido_diario_base_url: str = "https://api.queridodiario.ok.org.br"
+    querido_diario_base_url: str = "https://api.queridodiario.org.br"
     ibge_base_url: str = "https://servicodados.ibge.gov.br/api"
 
     data_inicio: str = "2024-01-01"

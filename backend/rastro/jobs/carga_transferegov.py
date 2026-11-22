@@ -22,8 +22,7 @@ _FILTRO_PLANO = " WHERE p.ano_plano_acao >= :ano AND (:todas OR p.uf_beneficiari
 PAIS: dict[str, str] = {
     "id_plano_acao": "SELECT p.id_plano_acao FROM plano_acao p" + _FILTRO_PLANO,
     "id_executor": "SELECT e.id FROM executor e JOIN plano_acao p USING (id_plano_acao)" + _FILTRO_PLANO,
-    "id_empenho": "SELECT e.id_empenho FROM empenho e JOIN plano_acao p USING (id_plano_acao)"
-    + _FILTRO_PLANO,
+    "id_empenho": "SELECT e.id_empenho FROM empenho e JOIN plano_acao p USING (id_plano_acao)" + _FILTRO_PLANO,
     "id_dh": "SELECT d.id_dh FROM documento_habil d JOIN empenho e USING (id_empenho)"
     " JOIN plano_acao p USING (id_plano_acao)" + _FILTRO_PLANO,
 }
@@ -71,9 +70,7 @@ def _carregar_filha(cli: ClienteHttp, tab: tg.Tabela, desde: date, ufs, execucao
     contexto: dict[str, Any] = {}
     if tab.destino == "meta":
         with transacao() as conn:
-            contexto["plano_do_executor"] = dict(
-                conn.execute(text("SELECT id, id_plano_acao FROM executor")).all()
-            )
+            contexto["plano_do_executor"] = dict(conn.execute(text("SELECT id, id_plano_acao FROM executor")).all())
     gravados = estado.get("gravados", 0)
     with cronometro("transferegov", f"carga:{tab.nome_api}", pais=len(pais)) as info:
         if len(pais) <= LIMITE_BUSCA_POR_LOTE:

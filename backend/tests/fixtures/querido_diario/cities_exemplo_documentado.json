@@ -1,0 +1,4 @@
+{"cities": [
+ {"territory_id": "2401859", "territory_name": "Exemplo do Norte", "state_code": "RN", "publication_urls": ["https://exemplo"], "level": "3"},
+ {"territory_id": "1400100", "territory_name": "Boa Vista", "state_code": "RR", "publication_urls": null, "level": "1"}
+]}
