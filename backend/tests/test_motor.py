@@ -224,7 +224,8 @@ class ClienteFalso:
         return SimpleNamespace(stop_reason="end_turn", parsed_output=self.saida)
 
 
-def test_ia_usa_modelo_rapido_para_diario_e_analise_para_contrato() -> None:
+def test_ia_usa_modelo_rapido_para_diario_e_analise_para_contrato(monkeypatch) -> None:
+    monkeypatch.setattr(ia.config(), "modelo_motor", "")  # sem MODELO_MOTOR do .env local
     saida = ia.RespostaCorrespondencia(compativel=True, confianca=0.9, justificativa="ok", trechos_citados=["x"])
     cli = ClienteFalso(saida)
     r, metodo = ia.avaliar_correspondencia("obj", {"fonte": "querido_diario", "trecho": "t"}, 0.3, None, cliente=cli)
@@ -284,3 +285,24 @@ def test_sem_consulta_ao_pncp_fica_cinza_sem_a1() -> None:
     # evidência de outra fonte (ex.: Tribunal de Contas) continua valendo
     c = corr(fonte="tce_contrato")
     assert semaforo.avaliar(dados(pncp_verificado=False, correspondencias=[c]))[0] == "verde"
+
+
+def test_documento_que_cita_o_numero_da_emenda_entra_sempre() -> None:
+    evidencias = [
+        _ev(1, "Retroescavadeira nova, 4x4, recurso da Emenda Parlamentar Federal nº 202441840008", D("380000"), 100),
+        _ev(2, "Locação de veículos", D("390000"), 100),
+    ]
+    sim = Similaridade(["Aquisição de máquina pesada"] + [e.objeto for e in evidencias])
+    cands = selecionar_candidatos(
+        "Aquisição de máquina pesada", evidencias, {"1" * 14}, HOJE - timedelta(days=200), D("400000"), sim,
+        numero_emenda="202441840008",
+    )  # fmt: skip
+    assert cands[0].evidencia.id == 1 and cands[0].similaridade == 1.0 and "cita o número da emenda" in cands[0].motivos
+
+
+def test_modelo_motor_sobrepoe_os_demais(monkeypatch) -> None:
+    monkeypatch.setattr(ia.config(), "modelo_motor", "modelo-x")
+    saida = ia.RespostaCorrespondencia(compativel=True, confianca=0.9, justificativa="ok")
+    cli = ClienteFalso(saida)
+    ia.avaliar_correspondencia("obj", {"fonte": "pncp_contrato", "objeto": "t"}, 0.3, None, cliente=cli)
+    assert cli.chamadas[0]["model"] == "modelo-x"

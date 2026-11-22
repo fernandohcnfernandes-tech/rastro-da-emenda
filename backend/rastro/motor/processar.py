@@ -9,6 +9,7 @@ import argparse
 import hashlib
 import json
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from decimal import Decimal
 from typing import Any
@@ -23,10 +24,12 @@ from rastro.motor import ia, semaforo
 from rastro.motor.pre_filtro import Evidencia, Similaridade, selecionar_candidatos
 from rastro.motor.regras import Correspondencia, DadosEmenda
 
-VERSAO_MOTOR = "4"  # 2: similaridade palavras + caracteres; fonte TCE. 3: faixa "em revisão"
+PARALELISMO_IA = 8  # chamadas simultâneas à IA (cada uma com sua conexão ao banco para o cache)
+VERSAO_MOTOR = "5"  # 2: similaridade palavras + caracteres; fonte TCE. 3: faixa "em revisão"
 
 SQL_PLANOS = """
-SELECT p.id_plano_acao, p.uf_beneficiario AS uf, p.cnpj_beneficiario, p.valor_custeio, p.valor_investimento,
+SELECT p.id_plano_acao, p.uf_beneficiario AS uf, p.emenda_numero, p.cnpj_beneficiario,
+       p.valor_custeio, p.valor_investimento,
        p.objeto_declarado, en.codigo_ibge, en.esfera, en.populacao, en.obrigado_pncp, en.coberto_querido_diario,
        en.coberto_tce,
        (SELECT min(data_pagamento) FROM pagamento g WHERE g.id_plano_acao = p.id_plano_acao) AS primeiro_pagamento,
@@ -112,24 +115,43 @@ def processar_uf(uf: str, somente: set[int] | None = None, forcar: bool = False)
     similaridade = Similaridade([texto_da_emenda(p) for p in planos] + [r.objeto or "" for r in evidencias[:200_000]])
     contagem: dict[str, int] = defaultdict(int)
     hoje = date.today()
+    pendentes = []
     for p in planos:
         cnpjs_plano = {c for c in [p.cnpj_beneficiario, *(p.executores or [])] if c}
         texto = texto_da_emenda(p)
         candidatas = [e for c in cnpjs_plano for e in por_cnpj.get(c, [])]
         repassado = Decimal(p.repassado) if p.repassado is not None else None
-        cands = selecionar_candidatos(texto, candidatas, cnpjs_plano, p.primeiro_pagamento, repassado, similaridade)
+        cands = selecionar_candidatos(
+            texto, candidatas, cnpjs_plano, p.primeiro_pagamento, repassado, similaridade, numero_emenda=p.emenda_numero
+        )
         tem_pncp = bool(cnpjs_plano & com_pncp)
         pncp_verificado = bool(cnpjs_plano & verificados)
         chave = _hash(p, cands, (tem_pncp, pncp_verificado))
         if not forcar and chave == p.hash_anterior:
             contagem["sem_mudanca"] += 1
             continue
+        pendentes.append((p, texto, repassado, cands, tem_pncp, pncp_verificado, chave))
+
+    # Avaliação dos candidatos (IA ou heurística) em paralelo; cada tarefa usa sua própria conexão.
+    def avaliar(tarefa):
+        texto, ev, sim, repassado = tarefa
+        with transacao() as conn_ia:
+            return ia.avaliar_correspondencia(texto, dict(ev._mapping), sim, repassado, conn_ia)
+
+    tarefas = [
+        ((p.id_plano_acao, c.evidencia.id), (texto, extras[c.evidencia.id], c.similaridade, repassado))
+        for p, texto, repassado, cands, *_ in pendentes
+        for c in cands
+    ]
+    with ThreadPoolExecutor(max_workers=PARALELISMO_IA if ia.ia_disponivel() else 1) as pool:
+        avaliacoes = dict(zip([t[0] for t in tarefas], pool.map(avaliar, [t[1] for t in tarefas]), strict=True))
+
+    for p, texto, repassado, cands, tem_pncp, pncp_verificado, chave in pendentes:
         with transacao() as conn:
             correspondencias = []
             conn.execute(text("DELETE FROM correspondencia WHERE id_plano_acao = :id"), {"id": p.id_plano_acao})
             for c in cands:
-                ev = extras[c.evidencia.id]
-                resposta, metodo = ia.avaliar_correspondencia(texto, dict(ev._mapping), c.similaridade, repassado, conn)
+                resposta, metodo = avaliacoes[(p.id_plano_acao, c.evidencia.id)]
                 contagem[f"metodo_{metodo}"] += 1
                 conn.execute(
                     text(

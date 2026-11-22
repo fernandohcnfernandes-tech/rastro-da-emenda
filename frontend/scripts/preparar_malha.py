@@ -19,12 +19,27 @@ def arredondar(coords, casas=3):
     return [arredondar(c, casas) for c in coords]
 
 
+def area_assinada(anel: list) -> float:
+    """Área pela fórmula do laço (positiva = anti-horário em lon/lat)."""
+    return sum(anel[i][0] * anel[i + 1][1] - anel[i + 1][0] * anel[i][1] for i in range(len(anel) - 1)) / 2
+
+
+def orientar(poligono: list) -> list:
+    """d3-geo exige anel externo no sentido horário e furos no anti-horário. A orientação é imposta anel a
+    anel (e não invertida às cegas): a malha de UFs do IBGE mistura orientações."""
+    saida = []
+    for i, anel in enumerate(poligono):
+        horario = area_assinada(anel) < 0
+        quer_horario = i == 0
+        saida.append(anel if horario == quer_horario else list(reversed(anel)))
+    return saida
+
+
 def inverter_aneis(geometria: dict) -> None:
-    """O d3-geo espera anéis no sentido horário; o GeoJSON do IBGE (RFC 7946) usa anti-horário."""
     if geometria["type"] == "Polygon":
-        geometria["coordinates"] = [list(reversed(anel)) for anel in geometria["coordinates"]]
+        geometria["coordinates"] = orientar(geometria["coordinates"])
     elif geometria["type"] == "MultiPolygon":
-        geometria["coordinates"] = [[list(reversed(anel)) for anel in poligono] for poligono in geometria["coordinates"]]
+        geometria["coordinates"] = [orientar(p) for p in geometria["coordinates"]]
 
 
 def main() -> None:

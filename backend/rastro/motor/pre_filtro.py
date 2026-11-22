@@ -102,6 +102,7 @@ def selecionar_candidatos(
     similaridade: Similaridade,
     limiar: float = LIMIAR_SIMILARIDADE,
     maximo: int = MAX_CANDIDATOS,
+    numero_emenda: str | None = None,
 ) -> list[Candidato]:
     """Aplica CNPJ, data, faixa de valor e similaridade; devolve no máximo `maximo` candidatos ordenados."""
     filtradas = [
@@ -112,10 +113,12 @@ def selecionar_candidatos(
     if not filtradas:
         return []
     notas = similaridade.pontuar(texto_emenda, [e.objeto or "" for e in filtradas])
-    candidatos = [
-        Candidato(e, n, ["cnpj", "data", "valor", f"similaridade={n:.2f}"])
-        for e, n in zip(filtradas, notas, strict=True)
-        if n >= limiar
-    ]
+    candidatos = []
+    for e, n in zip(filtradas, notas, strict=True):
+        if numero_emenda and numero_emenda in re.sub(r"\D", "", e.objeto or ""):
+            # O documento cita o número da emenda: sinal forte, entra sempre e na frente.
+            candidatos.append(Candidato(e, 1.0, ["cnpj", "data", "valor", "cita o número da emenda"]))
+        elif n >= limiar:
+            candidatos.append(Candidato(e, n, ["cnpj", "data", "valor", f"similaridade={n:.2f}"]))
     candidatos.sort(key=lambda c: (-c.similaridade, -(c.evidencia.valor or 0)))
     return candidatos[:maximo]
