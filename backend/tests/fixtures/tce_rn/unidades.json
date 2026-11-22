@@ -1,0 +1,42 @@
+[
+ {
+  "identificadorUnidade": 2,
+  "codigoOrgao": "AGN",
+  "nomeOrgao": "AGÊNCIA DE FOMENTO DO RN S/A",
+  "cnpj": "03848103000102",
+  "dataInicioAtividade": "2000-05-29T00:00:00",
+  "dataTerminoAtividade": null
+ },
+ {
+  "identificadorUnidade": 20,
+  "codigoOrgao": "CMACARI",
+  "nomeOrgao": "CÂMARA MUNICIPAL DE ACARI",
+  "cnpj": "08539439000107",
+  "dataInicioAtividade": "2000-01-01T00:00:00",
+  "dataTerminoAtividade": null
+ },
+ {
+  "identificadorUnidade": 1012,
+  "codigoOrgao": "FAACARI",
+  "nomeOrgao": "FUNDO DE ASSISTÊNCIA SOCIAL DE ACARI",
+  "cnpj": null,
+  "dataInicioAtividade": "2012-01-01T00:00:00",
+  "dataTerminoAtividade": null
+ },
+ {
+  "identificadorUnidade": 675,
+  "codigoOrgao": "FSACARI",
+  "nomeOrgao": "FUNDO DE SAÚDE DE ACARI",
+  "cnpj": null,
+  "dataInicioAtividade": "2011-01-01T00:00:00",
+  "dataTerminoAtividade": null
+ },
+ {
+  "identificadorUnidade": 337,
+  "codigoOrgao": "PMACARI",
+  "nomeOrgao": "PREFEITURA MUNICIPAL DE ACARI",
+  "cnpj": "08097008000120",
+  "dataInicioAtividade": "2000-01-01T00:00:00",
+  "dataTerminoAtividade": null
+ }
+]

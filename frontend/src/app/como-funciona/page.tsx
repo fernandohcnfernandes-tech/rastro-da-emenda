@@ -27,7 +27,7 @@ const FONTES: [string, string, string][] = [
   ["IBGE", "Códigos de municípios, população estimada e malha do mapa.", "https://servicodados.ibge.gov.br/api/docs"],
   ["PNCP — Portal Nacional de Contratações Públicas", "Contratos e contratações dos CNPJs beneficiários e executores.", "https://pncp.gov.br/api/consulta/swagger-ui/index.html"],
   ["Querido Diário (Open Knowledge Brasil)", "Diários oficiais de municípios pequenos cobertos pelo projeto.", "https://queridodiario.ok.org.br"],
-  ["TCE-RS — dados abertos do LicitaCon", "Contratos que todos os órgãos municipais gaúchos informam ao Tribunal de Contas.", "https://dados.tce.rs.gov.br"],
+  ["Tribunais de Contas — dados abertos", "Contratos que os municípios informam ao TCE-RS (LicitaCon), TCE-SP (Audesp), TCE-PI (Mural de Contratos) e TCE-RN.", "https://dados.tce.rs.gov.br"],
 ];
 
 export default function ComoFunciona() {
@@ -54,7 +54,7 @@ export default function ComoFunciona() {
           <li>Coletamos valor, parlamentar, beneficiário, executores, pagamentos e plano de trabalho (Transferegov e Portal da Transparência).</li>
           <li>Procuramos contratos e contratações do CNPJ beneficiário e dos executores no PNCP, a partir do 1º pagamento (menos 30 dias).</li>
           <li>Em municípios com até 20 mil habitantes, também buscamos extratos de contrato, avisos de licitação e dispensas no Querido Diário.</li>
-          <li>No Rio Grande do Sul, usamos também os contratos que os municípios informam ao Tribunal de Contas (LicitaCon), em dados abertos.</li>
+          <li>Em RS, SP, PI e RN, usamos também os contratos que os municípios informam ao Tribunal de Contas do estado, em dados abertos.</li>
           <li>Um pré-filtro (CNPJ, data, faixa de valor e semelhança de texto) seleciona até 5 candidatos por emenda.</li>
           <li>Uma IA compara cada candidato com o objeto da emenda e devolve compatibilidade, confiança, justificativa e trechos citados. Sem IA configurada, uma regra transparente de semelhança e valor faz essa etapa — e a ficha indica isso.</li>
           <li>Regras de alerta e o semáforo são calculados e geram a ficha, o dossiê em PDF e os alertas por e-mail.</li>
@@ -110,7 +110,7 @@ export default function ComoFunciona() {
           </li>
           <li>
             <strong>Cobertura do Querido Diário e dos Tribunais de Contas:</strong> o Querido Diário tem busca de texto em cerca de 500
-            municípios, e só o TCE-RS publica hoje os contratos municipais em formato que integramos. Município pequeno sem nenhuma dessas
+            municípios, e integramos os Tribunais de Contas que publicam contratos municipais em dados abertos (RS, SP, PI e RN). Município pequeno sem nenhuma dessas
             fontes e sem registros no PNCP recebe azul (sem fonte para verificar), não vermelho.
           </li>
           <li>O recurso da emenda Pix entra no caixa do ente e não exige conta específica: a ligação com um contrato é feita por objeto, valor, data e CNPJ — por isso falamos em evidência e indício.</li>

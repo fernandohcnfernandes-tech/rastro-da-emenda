@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import argparse
 import time
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 from sqlalchemy import text
@@ -83,6 +83,9 @@ def executar(
         if pncp:
             _etapa(resumo, "pncp", carga_pncp.atualizar_recentes, DIAS_JANELA)
         _etapa(resumo, "tce_rs", carga_tce.carregar_tce_rs, desde, [date.today().year])
+        _etapa(resumo, "tce_pi", carga_tce.carregar_tce_pi, desde, date.today() - timedelta(days=DIAS_JANELA))
+        _etapa(resumo, "tce_sp", carga_tce.carregar_tce_sp, desde, True)
+        _etapa(resumo, "tce_rn", carga_tce.carregar_tce_rn, desde)
         if querido_diario:
             _etapa(resumo, "querido_diario_cobertura", carga_querido_diario.atualizar_cobertura)
             _etapa(resumo, "querido_diario", carga_querido_diario.buscar_evidencias, desde, None, DIAS_JANELA)
