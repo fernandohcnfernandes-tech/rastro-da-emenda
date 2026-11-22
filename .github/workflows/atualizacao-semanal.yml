@@ -2,7 +2,7 @@ name: Atualização semanal
 
 on:
   workflow_dispatch:
-  # Ativar na etapa 9 do roteiro, quando o job estiver pronto:
+  # Ativar quando o job de atualização semanal estiver pronto:
   # schedule:
   #   - cron: "0 6 * * 1"   # segunda-feira, 03h (horário de Brasília)
 

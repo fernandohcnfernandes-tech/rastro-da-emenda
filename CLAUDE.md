@@ -82,7 +82,7 @@ pytest -q
 
 ## 9. Ordem de trabalho
 
-Seguir `docs/ROTEIRO_CLAUDE_CODE.md`, etapa por etapa. Ao terminar uma etapa, atualizar a seção "Andamento" abaixo com data, o que foi feito e o que ficou pendente.
+Desenvolver em fases, nesta ordem: ambiente e banco → Transferegov → Portal da Transparência e IBGE → PNCP → Querido Diário → motor de correspondência e IA → API → frontend → atualização semanal, alertas e empacotamento para deploy → qualidade e documentação → textos da submissão. Ao terminar cada fase, atualizar a seção "Andamento" abaixo com data, o que foi feito e o que ficou pendente.
 
 ## 10. Andamento
 

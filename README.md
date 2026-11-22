@@ -45,7 +45,7 @@ uvicorn rastro.api.main:app --reload
 
 ## Desenvolvimento com Claude Code
 
-Abra o terminal na raiz do repositório, rode `claude` e siga o roteiro em [`docs/ROTEIRO_CLAUDE_CODE.md`](docs/ROTEIRO_CLAUDE_CODE.md). As regras do projeto estão em [`CLAUDE.md`](CLAUDE.md).
+Abra o terminal na raiz do repositório e rode `claude`. As regras e a arquitetura do projeto estão em [`CLAUDE.md`](CLAUDE.md), que o Claude Code lê automaticamente.
 
 ## Fontes de dados
 
