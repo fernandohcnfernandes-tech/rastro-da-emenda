@@ -82,7 +82,7 @@ async function Conteudo({ params }: { params: Promise<{ nome: string }> }) {
         <BarraSemaforo contagem={p.status} />
       </Cartao>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <TabelaEmendas itens={p.emendas} />
+        <TabelaEmendas itens={p.emendas} mostrarParlamentar={false} />
         <FormAssinatura tipo="parlamentar" chave={p.nome} rotulo={p.nome} />
       </div>
       <p className="text-xs text-discreto">Dados do parlamentar: dados abertos da Câmara dos Deputados e do Senado Federal (legislatura 57).</p>

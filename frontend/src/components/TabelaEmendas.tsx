@@ -5,7 +5,15 @@ import type { EmendaResumo } from "@/lib/tipos";
 
 import { Selo, Vazio } from "./ui";
 
-export function TabelaEmendas({ itens, mostrarMunicipio = true }: { itens: EmendaResumo[]; mostrarMunicipio?: boolean }) {
+export function TabelaEmendas({
+  itens,
+  mostrarMunicipio = true,
+  mostrarParlamentar = true,
+}: {
+  itens: EmendaResumo[];
+  mostrarMunicipio?: boolean;
+  mostrarParlamentar?: boolean;
+}) {
   if (!itens.length) return <Vazio>Nenhuma emenda encontrada com esses filtros.</Vazio>;
   return (
     <div className="cartao overflow-hidden p-0">
@@ -15,7 +23,7 @@ export function TabelaEmendas({ itens, mostrarMunicipio = true }: { itens: Emend
             <tr>
               <th className="px-4 py-3 font-semibold">Status</th>
               <th className="px-4 py-3 font-semibold">Emenda</th>
-              <th className="px-4 py-3 font-semibold">Parlamentar</th>
+              {mostrarParlamentar && <th className="px-4 py-3 font-semibold">Parlamentar</th>}
               {mostrarMunicipio && <th className="px-4 py-3 font-semibold">Beneficiário</th>}
               <th className="px-4 py-3 text-right font-semibold">Repassado</th>
               <th className="px-4 py-3 font-semibold">1º pagamento</th>
@@ -34,6 +42,7 @@ export function TabelaEmendas({ itens, mostrarMunicipio = true }: { itens: Emend
                   </Link>
                   <p className="line-clamp-1 text-xs text-discreto">{e.objeto}</p>
                 </td>
+                {mostrarParlamentar && (
                 <td className="px-4 py-3 text-cinza-claro">
                   {e.parlamentar ? (
                     <Link href={`/parlamentares/${encodeURIComponent(e.parlamentar)}`} className="hover:text-forte hover:underline">
@@ -43,6 +52,7 @@ export function TabelaEmendas({ itens, mostrarMunicipio = true }: { itens: Emend
                     "—"
                   )}
                 </td>
+                )}
                 {mostrarMunicipio && (
                   <td className="px-4 py-3 text-cinza-claro">
                     {e.codigo_ibge && e.municipio ? (
