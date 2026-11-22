@@ -1,72 +1,146 @@
 @import "tailwindcss";
 
-/* Linguagem visual QKV works (tema escuro azul-marinho), escrita do zero para este projeto. */
-@theme {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+/*
+ * Linguagem visual QKV works, escrita do zero para este projeto. Dois temas (escuro e claro) trocados por
+ * data-tema no <html>. Contraste conferido por scripts/contraste.py: todos os pares de texto ≥ 4,5:1.
+ */
+@custom-variant claro (&:where([data-tema="claro"], [data-tema="claro"] *));
 
-  --color-fundo: #05070c;
-  --color-lateral: #050b18;
-  --color-superficie: #0b1424;
-  --color-superficie-2: #111c30;
-  --color-superficie-3: #182640;
-  --color-borda: #26385d;
-  --color-texto: #f7f7f4;
-  --color-apoio: #9fb0d8;
-  --color-discreto: #7386ad;
-  --color-primaria: #3a68ff;
-  --color-primaria-escura: #315bce;
-  --color-destaque: #6f93ff;
-  --color-rotulo: #75a7ff;
-
-  /* Semáforo (CLAUDE.md) e variantes claras para texto sobre fundo escuro */
-  --color-verde: #16a34a;
-  --color-verde-claro: #4fd19b;
-  --color-amarelo: #eab308;
-  --color-amarelo-claro: #f0b85a;
-  --color-vermelho: #dc2626;
-  --color-vermelho-claro: #ff6b78;
-  --color-azul: #2563eb;
-  --color-azul-claro: #75a7ff;
-  --color-cinza: #94a3b8;
-  --color-cinza-claro: #c7d4ef;
-
-  --shadow-cartao: 0 14px 38px rgb(0 0 0 / 24%);
-  --shadow-suave: 0 18px 50px rgb(0 0 0 / 32%);
-  --shadow-primaria: 0 10px 28px rgb(49 91 206 / 24%);
-}
-
-html {
+:root {
+  --t-fundo: #05070c;
+  --t-lateral: #050b18;
+  --t-superficie: #0b1424;
+  --t-superficie-2: #111c30;
+  --t-superficie-3: #182640;
+  --t-campo: #070f1d;
+  --t-borda: #26385d;
+  --t-texto: #f7f7f4;
+  --t-forte: #ffffff;
+  --t-apoio: #9fb0d8;
+  --t-discreto: #8193b8;
+  --t-primaria: #3a68ff;
+  --t-primaria-escura: #315bce;
+  --t-destaque: #6f93ff;
+  --t-rotulo: #75a7ff;
+  --t-st-verde: #4fd19b;
+  --t-st-amarelo: #f0b85a;
+  --t-st-vermelho: #ff6b78;
+  --t-st-azul: #75a7ff;
+  --t-st-cinza: #c7d4ef;
+  --t-mapa-vazio: #1a2740;
+  --t-mapa-filtrado: #22324f;
+  --t-mapa-borda: #05070c;
+  --t-sombra-cartao: 0 14px 38px rgb(0 0 0 / 24%);
+  --t-sombra-suave: 0 18px 50px rgb(0 0 0 / 32%);
+  --t-sombra-lateral: 18px 0 48px rgb(0 0 0 / 18%);
+  --t-cartao: linear-gradient(150deg, rgb(17 28 48 / 96%), rgb(9 17 31 / 96%));
+  --t-cartao-borda: rgb(159 176 216 / 20%);
+  --t-brilho: rgb(49 91 206 / 16%);
+  --t-heroi: radial-gradient(circle at 85% 0%, rgb(58 104 255 / 30%), transparent 26rem), linear-gradient(140deg, #0b1424, #05070c);
   color-scheme: dark;
 }
 
+[data-tema="claro"] {
+  --t-fundo: #f4f6fb;
+  --t-lateral: #ffffff;
+  --t-superficie: #ffffff;
+  --t-superficie-2: #f1f4f9;
+  --t-superficie-3: #e5eaf3;
+  --t-campo: #ffffff;
+  --t-borda: #cfd8e6;
+  --t-texto: #0b0f1a;
+  --t-forte: #0b0f1a;
+  --t-apoio: #475569;
+  --t-discreto: #5a6478;
+  --t-primaria: #2563eb;
+  --t-primaria-escura: #1d4ed8;
+  --t-destaque: #1d4ed8;
+  --t-rotulo: #1d4ed8;
+  --t-st-verde: #166534;
+  --t-st-amarelo: #854d0e;
+  --t-st-vermelho: #a61b1b;
+  --t-st-azul: #1d4ed8;
+  --t-st-cinza: #334155;
+  --t-mapa-vazio: #e2e8f0;
+  --t-mapa-filtrado: #cbd5e1;
+  --t-mapa-borda: #ffffff;
+  --t-sombra-cartao: 0 1px 2px rgb(15 23 42 / 6%), 0 8px 24px rgb(15 23 42 / 6%);
+  --t-sombra-suave: 0 12px 32px rgb(15 23 42 / 14%);
+  --t-sombra-lateral: 1px 0 0 rgb(15 23 42 / 6%);
+  --t-cartao: #ffffff;
+  --t-cartao-borda: #dbe2ee;
+  --t-brilho: rgb(37 99 235 / 7%);
+  --t-heroi: radial-gradient(circle at 85% 0%, rgb(37 99 235 / 14%), transparent 26rem), linear-gradient(140deg, #ffffff, #eef2fa);
+  color-scheme: light;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+
+  --color-fundo: var(--t-fundo);
+  --color-lateral: var(--t-lateral);
+  --color-superficie: var(--t-superficie);
+  --color-superficie-2: var(--t-superficie-2);
+  --color-superficie-3: var(--t-superficie-3);
+  --color-campo: var(--t-campo);
+  --color-borda: var(--t-borda);
+  --color-texto: var(--t-texto);
+  --color-forte: var(--t-forte);
+  --color-apoio: var(--t-apoio);
+  --color-discreto: var(--t-discreto);
+  --color-primaria: var(--t-primaria);
+  --color-primaria-escura: var(--t-primaria-escura);
+  --color-destaque: var(--t-destaque);
+  --color-rotulo: var(--t-rotulo);
+
+  /* Semáforo: cores sólidas (CLAUDE.md) e variantes de texto por tema */
+  --color-verde: #16a34a;
+  --color-amarelo: #eab308;
+  --color-vermelho: #dc2626;
+  --color-azul: #2563eb;
+  --color-cinza: #94a3b8;
+  --color-verde-claro: var(--t-st-verde);
+  --color-amarelo-claro: var(--t-st-amarelo);
+  --color-vermelho-claro: var(--t-st-vermelho);
+  --color-azul-claro: var(--t-st-azul);
+  --color-cinza-claro: var(--t-st-cinza);
+
+  --shadow-cartao: var(--t-sombra-cartao);
+  --shadow-suave: var(--t-sombra-suave);
+  --shadow-primaria: 0 10px 28px rgb(49 91 206 / 24%);
+  --shadow-lateral: var(--t-sombra-lateral);
+}
+
 body {
-  background: var(--color-fundo);
-  color: var(--color-texto);
+  background: var(--t-fundo);
+  color: var(--t-texto);
 }
 
 .fundo-app {
-  background:
-    radial-gradient(circle at 92% 2%, rgb(49 91 206 / 16%), transparent 28rem),
-    var(--color-fundo);
+  background: radial-gradient(circle at 92% 2%, var(--t-brilho), transparent 28rem), var(--t-fundo);
+}
+
+.heroi {
+  background: var(--t-heroi);
 }
 
 .cartao {
-  background: linear-gradient(150deg, rgb(17 28 48 / 96%), rgb(9 17 31 / 96%));
-  border: 1px solid rgb(159 176 216 / 20%);
+  background: var(--t-cartao);
+  border: 1px solid var(--t-cartao-borda);
   border-radius: 12px;
-  box-shadow: var(--shadow-cartao);
+  box-shadow: var(--t-sombra-cartao);
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-primaria);
+  outline: 3px solid var(--t-primaria);
   outline-offset: 2px;
 }
 
 ::selection {
-  background: rgb(58 104 255 / 45%);
+  background: rgb(58 104 255 / 35%);
 }
 
 * {
-  scrollbar-color: #26385d transparent;
+  scrollbar-color: var(--t-borda) transparent;
   scrollbar-width: thin;
 }

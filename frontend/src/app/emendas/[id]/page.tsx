@@ -26,7 +26,7 @@ function BarraConfianca({ valor, conta }: { valor: number; conta: boolean }) {
     <div className="flex items-center gap-2" title={`Confiança ${Math.round(valor * 100)}%`}>
       <div className="relative h-1.5 w-24 overflow-hidden rounded-full bg-superficie-3">
         <div className="h-full" style={{ width: `${valor * 100}%`, background: conta ? CORES.verde : valor >= 0.45 ? CORES.amarelo : CORES.cinza }} />
-        <span className="absolute inset-y-0 left-[60%] w-px bg-white/40" aria-hidden />
+        <span className="absolute inset-y-0 left-[60%] w-px bg-forte/40" aria-hidden />
       </div>
       <span className="text-xs tabular-nums text-apoio">{Math.round(valor * 100)}%</span>
     </div>

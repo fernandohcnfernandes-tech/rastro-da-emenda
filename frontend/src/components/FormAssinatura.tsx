@@ -44,7 +44,7 @@ export function FormAssinatura({ tipo, chave, rotulo }: { tipo: "municipio" | "p
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="seu@email.com"
-        className="mt-3 h-10 w-full rounded-lg border border-borda bg-[#070f1d] px-3 text-sm placeholder:text-discreto focus:border-primaria focus:outline-none"
+        className="mt-3 h-10 w-full rounded-lg border border-borda bg-campo px-3 text-sm placeholder:text-discreto focus:border-primaria focus:outline-none"
       />
       <button
         disabled={enviando}

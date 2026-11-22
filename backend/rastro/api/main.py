@@ -108,9 +108,17 @@ def municipios(
 
 @app.get("/parlamentares")
 def parlamentares(
-    conn: Conexao, busca: str | None = None, pagina: int = Query(1, ge=1), tamanho: int = Query(30, ge=1, le=100)
+    conn: Conexao,
+    busca: str | None = None,
+    uf: str | None = Query(None, min_length=2, max_length=2, description="UF do parlamentar"),
+    casa: Literal["camara", "senado"] | None = None,
+    partido: str | None = Query(None, max_length=20),
+    pagina: int = Query(1, ge=1),
+    tamanho: int = Query(30, ge=1, le=100),
 ) -> dict:
-    return consultas.listar_parlamentares(conn, busca, pagina, tamanho)
+    resultado = consultas.listar_parlamentares(conn, busca, pagina, tamanho, uf, casa, partido)
+    resultado["partidos"] = consultas.partidos(conn)
+    return resultado
 
 
 @app.get("/municipios/{codigo_ibge}")

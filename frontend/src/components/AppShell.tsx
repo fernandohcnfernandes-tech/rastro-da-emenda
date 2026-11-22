@@ -16,6 +16,8 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+
+import { SeletorTema } from "./SeletorTema";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
@@ -111,7 +113,7 @@ function ItensMenu({ estreito, aoNavegar }: { estreito: boolean; aoNavegar: () =
                       estreito ? "justify-center" : ""
                     } ${
                       atual
-                        ? "border-destaque/40 bg-gradient-to-r from-primaria/30 to-primaria-escura/10 text-white shadow-[inset_3px_0_0_#6f93ff]"
+                        ? "border-destaque/40 bg-gradient-to-r from-primaria/30 to-primaria-escura/10 text-forte shadow-[inset_3px_0_0_var(--t-destaque)]"
                         : "border-transparent text-apoio hover:border-destaque/20 hover:bg-primaria/10 hover:text-texto"
                     }`}
                   >
@@ -166,7 +168,13 @@ export function AppShell({ children, rodape }: { children: React.ReactNode; roda
           <img
             src="/marca/qkvworks-logo-negativo.svg"
             alt="QKV works"
-            className={estreito ? "h-10 w-10 object-cover object-left" : "h-9 w-auto"}
+            className={`claro:hidden ${estreito ? "h-10 w-10 object-cover object-left" : "h-9 w-auto"}`}
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/marca/qkvworks-logo-positivo.svg"
+            alt="QKV works"
+            className={`hidden claro:block ${estreito ? "h-10 w-10 object-cover object-left" : "h-9 w-auto"}`}
           />
           {!estreito && (
             <span className="mt-3 block text-[15px] font-semibold tracking-tight text-texto">Rastro da Emenda</span>
@@ -204,7 +212,7 @@ export function AppShell({ children, rodape }: { children: React.ReactNode; roda
 
   return (
     <div className={`grid min-h-screen grid-cols-1 ${recolhido ? "lg:grid-cols-[84px_minmax(0,1fr)]" : "lg:grid-cols-[264px_minmax(0,1fr)]"}`}>
-      <aside className="sticky top-0 hidden h-screen border-r border-apoio/15 bg-lateral px-3 py-5 shadow-[18px_0_48px_rgb(0_0_0/18%)] lg:block">
+      <aside className="sticky top-0 hidden h-screen border-r border-apoio/15 bg-lateral px-3 py-5 shadow-lateral lg:block">
         {menu}
       </aside>
       {gaveta && (
@@ -231,11 +239,12 @@ export function AppShell({ children, rodape }: { children: React.ReactNode; roda
                 ref={busca}
                 name="q"
                 placeholder="Buscar emenda, município, parlamentar…"
-                className="h-10 w-full rounded-lg border border-borda bg-[#070f1d] pl-9 pr-10 text-sm text-texto placeholder:text-discreto focus:border-primaria focus:outline-none"
+                className="h-10 w-full rounded-lg border border-borda bg-campo pl-9 pr-10 text-sm text-texto placeholder:text-discreto focus:border-primaria focus:outline-none"
               />
               <kbd className="absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-borda px-1.5 text-[10px] text-discreto sm:block">/</kbd>
             </label>
           </form>
+          <SeletorTema />
         </header>
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-8">{children}</main>
       </div>

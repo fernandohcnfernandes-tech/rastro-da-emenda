@@ -17,7 +17,7 @@ export function Abas({ abas }: { abas: { id: string; rotulo: string; contador?: 
             aria-controls={`painel-${a.id}`}
             onClick={() => setAtual(a.id)}
             className={`-mb-px flex min-h-11 items-center gap-2 whitespace-nowrap border-b-2 px-4 text-sm transition ${
-              atual === a.id ? "border-primaria text-white" : "border-transparent text-apoio hover:text-texto"
+              atual === a.id ? "border-primaria text-forte" : "border-transparent text-apoio hover:text-texto"
             }`}
           >
             {a.rotulo}

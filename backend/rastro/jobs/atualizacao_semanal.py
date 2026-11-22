@@ -78,6 +78,9 @@ def executar(
         if transferegov:
             _etapa(resumo, "transferegov", carga_transferegov.carregar, desde, None, False)
             _etapa(resumo, "ibge", carga_ibge_portal.carregar_ibge)
+            from rastro.jobs.carga_congresso import carregar_congresso
+
+            _etapa(resumo, "congresso", carregar_congresso)
         if portal:
             _etapa(resumo, "portal", carga_ibge_portal.carregar_portal, desde)
         if pncp:

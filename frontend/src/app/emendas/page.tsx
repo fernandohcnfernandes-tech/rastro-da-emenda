@@ -46,9 +46,9 @@ async function Resultados({ searchParams }: { searchParams: Promise<Params> }) {
             name="q"
             defaultValue={f.q}
             placeholder="Município, parlamentar, número da emenda ou objeto (ex.: ambulância)"
-            className="h-10 min-w-0 flex-1 basis-full rounded-lg sm:basis-auto border border-borda bg-[#070f1d] px-3 text-sm placeholder:text-discreto focus:border-primaria focus:outline-none"
+            className="h-10 min-w-0 flex-1 basis-full rounded-lg sm:basis-auto border border-borda bg-campo px-3 text-sm placeholder:text-discreto focus:border-primaria focus:outline-none"
           />
-          <select name="uf" defaultValue={f.uf} aria-label="UF" className="h-10 rounded-lg border border-borda bg-[#070f1d] px-3 text-sm">
+          <select name="uf" defaultValue={f.uf} aria-label="UF" className="h-10 rounded-lg border border-borda bg-campo px-3 text-sm">
             <option value="">Todas as UFs</option>
             {UFS.map((u) => (
               <option key={u}>{u}</option>

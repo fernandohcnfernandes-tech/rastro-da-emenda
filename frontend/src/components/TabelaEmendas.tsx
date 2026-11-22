@@ -29,14 +29,14 @@ export function TabelaEmendas({ itens, mostrarMunicipio = true }: { itens: Emend
                   <Selo status={e.status} />
                 </td>
                 <td className="max-w-xs px-4 py-3">
-                  <Link href={`/emendas/${e.id_plano_acao}`} className="font-medium text-destaque hover:text-white hover:underline">
+                  <Link href={`/emendas/${e.id_plano_acao}`} className="font-medium text-destaque hover:text-forte hover:underline">
                     {e.emenda_numero ?? e.codigo_plano_acao}
                   </Link>
                   <p className="line-clamp-1 text-xs text-discreto">{e.objeto}</p>
                 </td>
                 <td className="px-4 py-3 text-cinza-claro">
                   {e.parlamentar ? (
-                    <Link href={`/parlamentares/${encodeURIComponent(e.parlamentar)}`} className="hover:text-white hover:underline">
+                    <Link href={`/parlamentares/${encodeURIComponent(e.parlamentar)}`} className="hover:text-forte hover:underline">
                       {e.parlamentar}
                     </Link>
                   ) : (
@@ -46,7 +46,7 @@ export function TabelaEmendas({ itens, mostrarMunicipio = true }: { itens: Emend
                 {mostrarMunicipio && (
                   <td className="px-4 py-3 text-cinza-claro">
                     {e.codigo_ibge && e.municipio ? (
-                      <Link href={`/municipios/${e.codigo_ibge}`} className="hover:text-white hover:underline">
+                      <Link href={`/municipios/${e.codigo_ibge}`} className="hover:text-forte hover:underline">
                         {e.municipio}
                       </Link>
                     ) : (

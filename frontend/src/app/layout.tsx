@@ -4,6 +4,7 @@ import { Suspense } from "react";
 
 import { AppShell } from "@/components/AppShell";
 import { Rodape } from "@/components/Rodape";
+import { SCRIPT_TEMA } from "@/components/SeletorTema";
 
 import "./globals.css";
 
@@ -17,7 +18,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className={inter.variable}>
+    <html lang="pt-BR" className={inter.variable} data-tema="escuro" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
+      </head>
       <body className="font-sans antialiased">
         <AppShell
           rodape={

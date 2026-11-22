@@ -93,6 +93,14 @@ def _popular() -> None:
                 ),
                 {"i": id_, "s": status, "a": alertas},
             )
+        c.execute(
+            text(
+                "INSERT INTO parlamentar (id, casa, nome, chave_nome, partido, uf, url_foto, email, url_pagina)"
+                " VALUES ('camara:9', 'camara', 'Fulana de Tal', 'FULANADETAL', 'XYZ', 'PB',"
+                " 'https://foto', 'f@camara.leg.br', 'https://www.camara.leg.br/deputados/9')"
+            )
+        )
+        c.execute(text("INSERT INTO parlamentar_autor VALUES ('Fulana de Tal', 'camara:9', 'exato')"))
         ev = c.execute(
             text(
                 "INSERT INTO evidencia (fonte, id_externo, cnpj_orgao, data_publicacao, objeto, valor, tipo_ato,"
@@ -201,3 +209,14 @@ def test_resumo_alertas_e_listas(cliente) -> None:
     assert m["total"] == 1 and m["itens"][0]["status"] == "vermelho"
     p = cliente.get("/parlamentares", params={"busca": "fulana"}).json()
     assert p["total"] == 1 and p["itens"][0]["emendas"] == 2
+
+
+def test_parlamentares_por_uf_casa_partido_e_perfil(cliente) -> None:
+    assert cliente.get("/parlamentares", params={"uf": "PB"}).json()["total"] == 1
+    assert (
+        cliente.get("/parlamentares", params={"uf": "RN"}).json()["total"] == 0
+    )  # UF do parlamentar, não do município
+    r = cliente.get("/parlamentares", params={"casa": "camara", "partido": "xyz"}).json()
+    assert r["total"] == 1 and r["itens"][0]["uf_parlamentar"] == "PB" and r["partidos"] == ["XYZ"]
+    perfil = cliente.get("/parlamentares/Fulana de Tal").json()["perfil"]
+    assert perfil["casa"] == "camara" and perfil["url_pagina"].startswith("https://www.camara.leg.br")

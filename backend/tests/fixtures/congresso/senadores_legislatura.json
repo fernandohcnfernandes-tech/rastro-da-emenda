@@ -1,0 +1,99 @@
+{
+ "ListaParlamentarLegislatura": {
+  "noNamespaceSchemaLocation": "https://legis.senado.leg.br/dadosabertos/dados/ListaParlamentarLegislaturav4.xsd",
+  "Metadados": {
+   "Versao": "22/11/2026 12:40:12",
+   "VersaoServico": "4",
+   "DataVersaoServico": "2021-09-09",
+   "DescricaoDataSet": "Retorna a lista de Senadores de uma Legislatura."
+  },
+  "Parlamentares": {
+   "Parlamentar": [
+    {
+     "IdentificacaoParlamentar": {
+      "CodigoParlamentar": "5918",
+      "NomeParlamentar": "Adilson Gomes",
+      "NomeCompletoParlamentar": "Adilson Gomes Silva",
+      "SexoParlamentar": "Masculino",
+      "FormaTratamento": "Senador "
+     },
+     "Mandatos": {
+      "Mandato": [
+       {
+        "CodigoMandato": "526",
+        "UfParlamentar": "PE",
+        "PrimeiraLegislaturaDoMandato": {
+         "NumeroLegislatura": "56",
+         "DataInicio": "2019-02-01",
+         "DataFim": "2023-01-31"
+        },
+        "SegundaLegislaturaDoMandato": {
+         "NumeroLegislatura": "57",
+         "DataInicio": "2023-02-01",
+         "DataFim": "2027-01-31"
+        },
+        "DescricaoParticipacao": "2º Suplente",
+        "Titular": {
+         "DescricaoParticipacao": "Titular",
+         "CodigoParlamentar": "4545",
+         "NomeParlamentar": "Jarbas Vasconcelos"
+        },
+        "Suplentes": {
+         "Suplente": [
+          {
+           "DescricaoParticipacao": "1º Suplente",
+           "CodigoParlamentar": "5917",
+           "NomeParlamentar": "Fernando Dueire"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "IdentificacaoParlamentar": {
+      "CodigoParlamentar": "6382",
+      "NomeParlamentar": "Adrian da Blukit",
+      "NomeCompletoParlamentar": "Adrian Rogers Censi",
+      "SexoParlamentar": "Masculino",
+      "FormaTratamento": "Senador "
+     },
+     "Mandatos": {
+      "Mandato": [
+       {
+        "CodigoMandato": "613",
+        "UfParlamentar": "SC",
+        "PrimeiraLegislaturaDoMandato": {
+         "NumeroLegislatura": "57",
+         "DataInicio": "2023-02-01",
+         "DataFim": "2027-01-31"
+        },
+        "SegundaLegislaturaDoMandato": {
+         "NumeroLegislatura": "58",
+         "DataInicio": "2027-02-01",
+         "DataFim": "2031-01-31"
+        },
+        "DescricaoParticipacao": "2º Suplente",
+        "Titular": {
+         "DescricaoParticipacao": "Titular",
+         "CodigoParlamentar": "6342",
+         "NomeParlamentar": "Jorge Seif"
+        },
+        "Suplentes": {
+         "Suplente": [
+          {
+           "DescricaoParticipacao": "1º Suplente",
+           "CodigoParlamentar": "6381",
+           "NomeParlamentar": "Hermes Klann"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

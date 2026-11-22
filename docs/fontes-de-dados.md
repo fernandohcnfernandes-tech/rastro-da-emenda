@@ -95,7 +95,14 @@ Usar somente quando: município ≤ 20 mil habitantes **e** sem evidência no PN
 - População (estimativa mais recente): agregado **6579**, variável **9324** ("População residente estimada"): `/api/v3/agregados/6579/periodos/{ano}/variaveis/9324?localidades=N6[all]` (municípios) ou `N3[all]` (UFs). Confirmado em 22/11/2026; períodos sem publicação voltam vazios.
 - Uso: marcar municípios com até 20 mil habitantes e ligar CNPJ ↔ código IBGE (por nome + UF do beneficiário).
 
-## 7. Apoio (opcional)
+## 7. Câmara dos Deputados e Senado Federal (dados dos parlamentares)
+
+Integrado em 22/11/2026, sem chave:
+- Câmara: `https://dadosabertos.camara.leg.br/api/v2/deputados?idLegislatura=57&itens=100&pagina=N` (nome parlamentar, partido, UF, foto) e `/deputados/{id}` (gabinete, e-mail, telefone). O detalhe traz CPF, data e local de nascimento: **não gravamos** esses campos.
+- Senado: `https://legis.senado.leg.br/dadosabertos/senador/lista/atual` (81 em exercício, com partido, foto, e-mail, telefone e página) e `/senador/lista/legislatura/57` (245, inclusive suplentes e ex-senadores).
+- Ligação com `plano_acao.parlamentar_nome` pelo nome normalizado (sem acentos e sem prefixos "Dep."/"Sen."): 573 de 573 autores no teste de 22/11; aproximação `difflib` ≥ 0,9 como reserva.
+
+## 8. Apoio (opcional)
 
 - APIs de dados abertos da Câmara e do Senado: partido, UF e foto oficial do parlamentar.
 - Cadastros CEIS/CNEP (Portal da Transparência): fornecedor sancionado (regra A8, extensão).

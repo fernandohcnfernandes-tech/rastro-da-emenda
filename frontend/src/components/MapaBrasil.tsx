@@ -22,7 +22,8 @@ const PREFIXO_UF: Record<string, string> = {
   PB: "25", PE: "26", AL: "27", SE: "28", BA: "29", MG: "31", ES: "32", RJ: "33", SP: "35", PR: "41", SC: "42",
   RS: "43", MS: "50", MT: "51", GO: "52", DF: "53",
 };
-const SEM_EMENDA = "#1a2740";
+const SEM_EMENDA = "var(--t-mapa-vazio)";
+const FILTRADO = "var(--t-mapa-filtrado)";
 const ZOOM_MAXIMO = 24;
 const BOTOES_ZOOM = [
   { rotulo: "Aproximar", icone: Plus, fator: 1.8 },
@@ -30,12 +31,28 @@ const BOTOES_ZOOM = [
   { rotulo: "Ver tudo", icone: Maximize2, fator: null },
 ];
 
-export function MapaBrasil({ painel = false, altura = "" }: { painel?: boolean; altura?: string }) {
+export function MapaBrasil({
+  painel = false,
+  altura = "",
+  filtro: filtroExterno,
+  aoFiltrar,
+}: {
+  painel?: boolean;
+  altura?: string;
+  /** Filtro controlado de fora (ex.: cartões da visão geral). Vazio = todos os status. */
+  filtro?: Status[];
+  aoFiltrar?: (filtro: Status[]) => void;
+}) {
   const router = useRouter();
   const [malha, setMalha] = useState<FeatureCollection<Geometry, { c: string }> | null>(null);
   const [pontos, setPontos] = useState<Map<string, PontoMapa>>(new Map());
   const [uf, setUf] = useState("");
-  const [filtro, setFiltro] = useState<Status | "">("");
+  const [filtroInterno, setFiltroInterno] = useState<Status[]>([]);
+  const filtro = filtroExterno ?? filtroInterno;
+  const setFiltro = aoFiltrar ?? setFiltroInterno;
+  function alternarStatus(s: Status) {
+    setFiltro(filtro.length === 1 && filtro[0] === s ? [] : [s]);
+  }
   const [foco, setFoco] = useState<{ ponto?: PontoMapa; codigo: string; x: number; y: number } | null>(null);
   const [selecionado, setSelecionado] = useState<PontoMapa | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -111,7 +128,7 @@ export function MapaBrasil({ painel = false, altura = "" }: { painel?: boolean; 
 
   function cor(p?: PontoMapa): string {
     if (!p) return SEM_EMENDA;
-    if (filtro && p.status !== filtro) return "#22324f";
+    if (filtro.length && !filtro.includes(p.status)) return FILTRADO;
     return CORES[p.status];
   }
 
@@ -132,10 +149,10 @@ export function MapaBrasil({ painel = false, altura = "" }: { painel?: boolean; 
         {ORDEM_STATUS.map((s) => (
           <button
             key={s}
-            onClick={() => setFiltro(filtro === s ? "" : s)}
-            aria-pressed={filtro === s}
+            onClick={() => alternarStatus(s)}
+            aria-pressed={filtro.includes(s)}
             className={`inline-flex h-9 items-center gap-2 rounded-full border px-3 text-xs transition ${
-              filtro === s ? "border-white/60 bg-white/10 text-white" : "border-borda text-apoio hover:text-texto"
+              filtro.includes(s) ? "border-forte/50 bg-forte/10 text-forte" : "border-borda text-apoio hover:text-texto"
             }`}
           >
             <span className="h-2.5 w-2.5 rounded-sm" style={{ background: CORES[s] }} />
@@ -162,8 +179,7 @@ export function MapaBrasil({ painel = false, altura = "" }: { painel?: boolean; 
                 <path
                   key={f.properties.c}
                   d={caminho(f) ?? undefined}
-                  fill={cor(p)}
-                  stroke="#05070c"
+                  style={{ fill: cor(p), stroke: "var(--t-mapa-borda)" }}
                   strokeWidth={(uf ? 0.5 : 0.12) / Math.sqrt(transformacao.k)}
                   className="cursor-pointer transition-opacity hover:opacity-70"
                   onMouseMove={(e) => {
@@ -189,7 +205,7 @@ export function MapaBrasil({ painel = false, altura = "" }: { painel?: boolean; 
                 onClick={() => aplicarZoom(fator)}
                 title={rotulo}
                 aria-label={rotulo}
-                className="grid h-9 w-9 place-items-center border-b border-borda/70 text-apoio last:border-b-0 hover:bg-superficie-3 hover:text-white"
+                className="grid h-9 w-9 place-items-center border-b border-borda/70 text-apoio last:border-b-0 hover:bg-superficie-3 hover:text-forte"
               >
                 <Icone className="h-4 w-4" />
               </button>

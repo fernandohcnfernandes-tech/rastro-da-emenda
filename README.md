@@ -106,6 +106,7 @@ Somente APIs e bases **oficiais e abertas**, respeitando limites de requisição
 | [IBGE](https://servicodados.ibge.gov.br/api/docs) | municípios, população estimada, malha do mapa | 60 req/min |
 | [PNCP](https://pncp.gov.br/api/consulta/swagger-ui/index.html) | contratos e contratações | 30 req/min (medido) |
 | [Querido Diário](https://queridodiario.ok.org.br) | diários oficiais de municípios pequenos | 60 req/min, com cache |
+| [Câmara dos Deputados](https://dadosabertos.camara.leg.br/swagger/api.html) e [Senado Federal](https://legis.senado.leg.br/dadosabertos/docs/) | partido, UF, foto e contato institucional dos autores | 60 req/min |
 | Tribunais de Contas — [TCE-RS](https://dados.tce.rs.gov.br), [TCE-SP](https://transparencia.tce.sp.gov.br), [TCE-PI](https://www.tcepi.tc.br/portaldacidadania/dados-abertos), [TCE-RN](https://apidadosabertos.tce.rn.gov.br) | contratos que os municípios informam ao tribunal | arquivos anuais/semestrais; APIs a 30 req/min |
 
 ## Limitações

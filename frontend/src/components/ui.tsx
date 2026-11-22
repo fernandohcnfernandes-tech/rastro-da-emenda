@@ -49,15 +49,29 @@ export function Indicador({
   detalhe,
   icone: Icone,
   tom = "#6f93ff",
+  aoClicar,
+  ativo = false,
+  dica,
 }: {
   rotulo: string;
   valor: React.ReactNode;
   detalhe?: React.ReactNode;
   icone?: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   tom?: string;
+  /** Torna o cartão um botão (ex.: filtrar o mapa). */
+  aoClicar?: () => void;
+  ativo?: boolean;
+  dica?: string;
 }) {
+  const Elemento = aoClicar ? "button" : "div";
   return (
-    <div className="cartao flex flex-col gap-3 p-5">
+    <Elemento
+      {...(aoClicar ? { onClick: aoClicar, "aria-pressed": ativo, title: dica, type: "button" as const } : {})}
+      className={`cartao flex flex-col gap-3 p-5 text-left ${
+        aoClicar ? "cursor-pointer transition hover:-translate-y-px hover:border-destaque/60" : ""
+      }`}
+      style={ativo ? { borderColor: tom, boxShadow: `0 0 0 1px ${tom}, var(--t-sombra-cartao)` } : undefined}
+    >
       <div className="flex items-center justify-between">
         <p className="text-[12px] font-medium text-apoio">{rotulo}</p>
         {Icone && (
@@ -68,7 +82,7 @@ export function Indicador({
       </div>
       <p className="text-[28px] font-semibold leading-none tracking-tight text-texto tabular-nums">{valor}</p>
       {detalhe && <p className="text-[12px] text-discreto">{detalhe}</p>}
-    </div>
+    </Elemento>
   );
 }
 
@@ -85,25 +99,65 @@ export function Selo({ status, grande = false }: { status: Status; grande?: bool
   );
 }
 
-export function BarraSemaforo({ contagem, legenda = true }: { contagem: Partial<Record<Status, number>>; legenda?: boolean }) {
+export function BarraSemaforo({
+  contagem,
+  legenda = true,
+  selecionados = [],
+  aoSelecionar,
+}: {
+  contagem: Partial<Record<Status, number>>;
+  legenda?: boolean;
+  /** Status destacados (os demais ficam esmaecidos). */
+  selecionados?: Status[];
+  /** Torna a barra e a legenda clicáveis. */
+  aoSelecionar?: (s: Status) => void;
+}) {
   const total = ORDEM_STATUS.reduce((s, k) => s + (contagem[k] ?? 0), 0);
+  const apagado = (s: Status) => selecionados.length > 0 && !selecionados.includes(s);
   return (
     <div>
       <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-superficie-3" role="img" aria-label="Distribuição do semáforo">
         {total > 0 &&
           ORDEM_STATUS.map((s) =>
-            contagem[s] ? <div key={s} style={{ width: `${(100 * (contagem[s] ?? 0)) / total}%`, background: CORES[s] }} /> : null,
+            contagem[s] ? (
+              <div
+                key={s}
+                onClick={aoSelecionar ? () => aoSelecionar(s) : undefined}
+                className={aoSelecionar ? "cursor-pointer transition-opacity" : ""}
+                style={{ width: `${(100 * (contagem[s] ?? 0)) / total}%`, background: CORES[s], opacity: apagado(s) ? 0.25 : 1 }}
+              />
+            ) : null,
           )}
       </div>
       {legenda && (
-        <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[13px]">
-          {ORDEM_STATUS.map((s) => (
-            <li key={s} className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-sm" style={{ background: CORES[s] }} />
-              <span className="font-medium text-texto tabular-nums">{numero(contagem[s] ?? 0)}</span>
-              <span className="text-apoio">{ROTULOS[s]}</span>
-            </li>
-          ))}
+        <ul className="mt-3 flex flex-wrap gap-x-2 gap-y-1.5 text-[13px]">
+          {ORDEM_STATUS.map((s) => {
+            const conteudo = (
+              <>
+                <span className="h-2.5 w-2.5 rounded-sm" style={{ background: CORES[s] }} />
+                <span className="font-medium text-texto tabular-nums">{numero(contagem[s] ?? 0)}</span>
+                <span className="text-apoio">{ROTULOS[s]}</span>
+              </>
+            );
+            return (
+              <li key={s}>
+                {aoSelecionar ? (
+                  <button
+                    type="button"
+                    onClick={() => aoSelecionar(s)}
+                    aria-pressed={selecionados.includes(s)}
+                    className={`flex items-center gap-2 rounded-full border px-2.5 py-1 transition hover:border-destaque/60 ${
+                      selecionados.includes(s) ? "border-forte/40 bg-forte/10" : "border-transparent"
+                    } ${apagado(s) ? "opacity-50" : ""}`}
+                  >
+                    {conteudo}
+                  </button>
+                ) : (
+                  <span className="flex items-center gap-2 px-2.5 py-1">{conteudo}</span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
@@ -137,7 +191,7 @@ export function BotaoLink({
   const classe = `inline-flex min-h-10 items-center gap-2 rounded-lg border px-4 text-sm font-medium transition ${
     primario
       ? "border-primaria bg-primaria text-white shadow-primaria hover:bg-primaria-escura"
-      : "border-borda bg-superficie-2 text-cinza-claro hover:border-primaria hover:text-white"
+      : "border-borda bg-superficie-2 text-cinza-claro hover:border-primaria hover:text-forte"
   }`;
   return externo ? (
     <a href={href} className={classe} target="_blank" rel="noreferrer">

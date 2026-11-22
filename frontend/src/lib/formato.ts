@@ -11,11 +11,11 @@ export const CORES: Record<Status, string> = {
 
 /** Variantes claras para texto e selos sobre fundo escuro (contraste AA). */
 export const CORES_TEXTO: Record<Status, string> = {
-  verde: "#4FD19B",
-  amarelo: "#F0B85A",
-  vermelho: "#FF6B78",
-  azul: "#75A7FF",
-  cinza: "#C7D4EF",
+  verde: "var(--t-st-verde)",
+  amarelo: "var(--t-st-amarelo)",
+  vermelho: "var(--t-st-vermelho)",
+  azul: "var(--t-st-azul)",
+  cinza: "var(--t-st-cinza)",
 };
 
 export const ROTULOS: Record<Status, string> = {

@@ -95,6 +95,7 @@ export interface Municipio {
 
 export interface Parlamentar {
   nome: string;
+  perfil: PerfilParlamentar | null;
   outros_nomes_encontrados: string[];
   status: Partial<Record<Status, number>>;
   total_emendas: number;
@@ -176,7 +177,26 @@ export interface ParlamentarLista extends Contagem {
   emendas: number;
   repassado: number;
   ufs: string[];
+  uf_parlamentar: string | null;
+  partido: string | null;
+  casa: "camara" | "senado" | null;
+  url_foto: string | null;
   status: Status;
+}
+
+export interface PerfilParlamentar {
+  id: string;
+  casa: "camara" | "senado";
+  nome: string;
+  nome_civil: string | null;
+  partido: string | null;
+  uf: string | null;
+  url_foto: string | null;
+  email: string | null;
+  telefone: string | null;
+  url_pagina: string | null;
+  situacao: string | null;
+  metodo_ligacao: string | null;
 }
 
 export interface Pagina<T> {

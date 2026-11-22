@@ -28,8 +28,8 @@ async function Lista({ searchParams }: { searchParams: Promise<Params> }) {
     <div className="space-y-4">
       <Cartao>
         <form action="/municipios" className="flex flex-wrap gap-2">
-          <input name="q" defaultValue={busca} placeholder="Nome do município" className="h-10 min-w-0 flex-1 basis-full rounded-lg sm:basis-auto border border-borda bg-[#070f1d] px-3 text-sm placeholder:text-discreto focus:border-primaria focus:outline-none" />
-          <select name="uf" defaultValue={uf} aria-label="UF" className="h-10 rounded-lg border border-borda bg-[#070f1d] px-3 text-sm">
+          <input name="q" defaultValue={busca} placeholder="Nome do município" className="h-10 min-w-0 flex-1 basis-full rounded-lg sm:basis-auto border border-borda bg-campo px-3 text-sm placeholder:text-discreto focus:border-primaria focus:outline-none" />
+          <select name="uf" defaultValue={uf} aria-label="UF" className="h-10 rounded-lg border border-borda bg-campo px-3 text-sm">
             <option value="">Todas as UFs</option>
             {UFS.map((u) => (
               <option key={u}>{u}</option>

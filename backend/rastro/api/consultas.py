@@ -261,8 +261,16 @@ def parlamentar(conn: Connection, nome: str) -> dict[str, Any] | None:
         return None
     exato = next((n["nome"] for n in nomes if n["nome"].lower() == nome.lower()), nomes[0]["nome"])
     emendas = listar_emendas(conn, 1, 500, parlamentar=exato)
+    perfil = _linhas(
+        conn,
+        "SELECT pr.id, pr.casa, pr.nome, pr.nome_civil, pr.partido, pr.uf, pr.url_foto, pr.email, pr.telefone,"
+        " pr.url_pagina, pr.situacao, pa.metodo AS metodo_ligacao"
+        " FROM parlamentar_autor pa JOIN parlamentar pr ON pr.id = pa.id_parlamentar WHERE pa.nome_autor = :n",
+        {"n": exato},
+    )
     return {
         "nome": exato,
+        "perfil": perfil[0] if perfil else None,
         "outros_nomes_encontrados": [n["nome"] for n in nomes if n["nome"] != exato],
         "status": resumo_status(conn, parlamentar=exato),
         "total_emendas": emendas["total"],
@@ -462,20 +470,53 @@ def listar_municipios(conn: Connection, busca: str | None, uf: str | None, pagin
     return {"total": total, "pagina": pagina, "tamanho": tamanho, "itens": itens}
 
 
-def listar_parlamentares(conn: Connection, busca: str | None, pagina: int, tamanho: int) -> dict:
-    params = {"busca": f"%{busca}%" if busca else None, "lim": tamanho, "off": (pagina - 1) * tamanho}
+def partidos(conn: Connection) -> list[str]:
+    return [
+        r[0]
+        for r in conn.execute(
+            text(
+                "SELECT DISTINCT pr.partido FROM parlamentar pr JOIN parlamentar_autor pa ON pa.id_parlamentar = pr.id"
+                " WHERE pr.partido IS NOT NULL ORDER BY 1"
+            )
+        )
+    ]
+
+
+def listar_parlamentares(
+    conn: Connection,
+    busca: str | None,
+    pagina: int,
+    tamanho: int,
+    uf: str | None = None,
+    casa: str | None = None,
+    partido: str | None = None,
+) -> dict:
+    params = {
+        "busca": f"%{busca}%" if busca else None,
+        "uf": uf.upper() if uf else None,
+        "casa": casa,
+        "partido": partido.upper() if partido else None,
+        "lim": tamanho,
+        "off": (pagina - 1) * tamanho,
+    }
     base = (
         " FROM plano_acao p LEFT JOIN avaliacao a ON a.id_plano_acao = p.id_plano_acao"
+        " LEFT JOIN parlamentar_autor pa ON pa.nome_autor = p.parlamentar_nome"
+        " LEFT JOIN parlamentar pr ON pr.id = pa.id_parlamentar"
         " LEFT JOIN LATERAL (SELECT sum(valor) v FROM pagamento g WHERE g.id_plano_acao = p.id_plano_acao) pg ON true"
         " WHERE p.ano_plano_acao >= 2024 AND p.parlamentar_nome IS NOT NULL"
         " AND (CAST(:busca AS text) IS NULL"
         "      OR unaccent_simples(p.parlamentar_nome) ILIKE unaccent_simples(:busca))"
+        " AND (CAST(:uf AS text) IS NULL OR pr.uf = :uf)"
+        " AND (CAST(:casa AS text) IS NULL OR pr.casa = :casa)"
+        " AND (CAST(:partido AS text) IS NULL OR upper(pr.partido) = :partido)"
     )
     total = conn.execute(text("SELECT count(DISTINCT p.parlamentar_nome)" + base), params).scalar_one()
     itens = _linhas(
         conn,
         "SELECT p.parlamentar_nome AS nome, count(*) AS emendas, sum(coalesce(pg.v, 0)) AS repassado,"
-        " array_agg(DISTINCT p.uf_beneficiario) AS ufs,"
+        " array_agg(DISTINCT p.uf_beneficiario) AS ufs, min(pr.uf) AS uf_parlamentar, min(pr.partido) AS partido,"
+        " min(pr.casa) AS casa, min(pr.url_foto) AS url_foto,"
         " count(*) FILTER (WHERE a.status = 'verde') AS verde, count(*) FILTER (WHERE a.status = 'amarelo') AS amarelo,"
         " count(*) FILTER (WHERE a.status = 'vermelho') AS vermelho, count(*) FILTER (WHERE a.status = 'azul') AS azul,"
         " count(*) FILTER (WHERE a.status = 'cinza' OR a.status IS NULL) AS cinza"
