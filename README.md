@@ -12,7 +12,8 @@ O Rastro da Emenda integra os sistemas federais que registram as **transferênci
 2. procura evidências de uso do recurso no **PNCP** (contratos e contratações do ente e dos executores), nos contratos informados aos **Tribunais de Contas** com dados abertos (RS, SP, PI e RN) e, para qualquer ente coberto sem evidência no PNCP, nos diários oficiais via **Querido Diário**;
 3. usa IA (**Claude Haiku 5.5**; sem chave, uma regra transparente) para decidir se a evidência corresponde ao objeto e ao valor da emenda — documentos que citam o número da emenda entram sempre como candidatos;
 4. atribui um **semáforo de execução** (verde, amarelo, vermelho, azul, cinza), gera alertas A1–A7, um **dossiê em PDF** com links para as fontes oficiais (opcionalmente com parecer da IA) e **alertas por e-mail** para quem assina um município ou parlamentar;
-5. oferece, na ficha de cada emenda, um **assistente de análise** (**Claude Sonnet 5.5**) que consulta o banco do projeto, responde sobre a emenda e os contratos e redige trechos para o dossiê, sempre em linguagem de indício e citando as fontes.
+5. oferece, na ficha de cada emenda, um **assistente de análise** (**Claude Sonnet 5.5**) que consulta o banco do projeto, responde sobre a emenda e os contratos e redige trechos para o dossiê, sempre em linguagem de indício e citando as fontes;
+6. tem o menu **Pergunte à IA** ([/assistente](https://rastrodaemenda.com.br/assistente)): um consultor (**Claude Sonnet 5.5**) que responde perguntas em linguagem natural sobre todos os dados do portal — panorama, rankings por UF, município, parlamentar, partido ou beneficiário, buscas e fichas —, com tabelas e links para as fichas usadas.
 
 > **Aviso:** o sistema aponta **indícios para apuração**, nunca acusações. "Sem evidência encontrada nas fontes consultadas" significa apenas que nada foi localizado nas bases públicas.
 
@@ -25,7 +26,7 @@ IBGE (população, códigos) ┘                     ▲                    │ 
 PNCP (contratos/contratações) ──────────────────┤                    ▼                         ▼
 Tribunais de Contas (RS, SP, PI, RN) ───────────┤        IA: Claude Haiku 5.5      API FastAPI ─► Next.js / dossiê PDF / e-mail
 Querido Diário (entes cobertos) ────────────────┤                                         │
-Câmara e Senado (perfil dos autores) ───────────┘                     assistente de análise (Claude Sonnet 5.5)
+Câmara e Senado (perfil dos autores) ───────────┘                     assistente e Pergunte à IA (Claude Sonnet 5.5)
 ```
 
 ```
@@ -34,10 +35,10 @@ backend/                 Python 3.12 · FastAPI · SQLAlchemy core · psycopg 3 
   rastro/db/             schema.sql + migracoes/NNN_*.sql (aplicados por `python -m rastro.db.migrar`)
   rastro/motor/          pre_filtro (CNPJ, data, valor, TF-IDF) · ia (saída estruturada + cache) · regras A1–A7 · semaforo · processar
   rastro/jobs/           carga_inicial (por fonte, retomável) · atualizacao_semanal
-  rastro/agente/         assistente de análise (laço de ferramentas somente leitura sobre o banco)
-  rastro/api/            endpoints REST, dossiê PDF e assistente
+  rastro/agente/         assistente da ficha e consultor do portal (laço de ferramentas somente leitura sobre o banco)
+  rastro/api/            endpoints REST, dossiê PDF, assistente e consultor
   tests/                 pytest com fixtures reais gravadas (nenhum teste acessa a rede)
-frontend/                Next.js 16 (App Router, TypeScript, Tailwind): visão geral, mapa (municípios e estados), fichas com assistente, municípios, estados e DF, parlamentares, alertas, cobertura das fontes
+frontend/                Next.js 16 (App Router, TypeScript, Tailwind): visão geral, mapa (municípios e estados), fichas com assistente, municípios, estados e DF, parlamentares, alertas, cobertura das fontes, Pergunte à IA
 docs/                    fontes de dados, regras e semáforo, decisões, relatórios, submissão e relatório final
 ```
 
