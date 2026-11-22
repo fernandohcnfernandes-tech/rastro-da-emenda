@@ -17,7 +17,7 @@ from rastro.util import data_ou_none, decimal_ou_none, mascarar_cpf, normalizar_
 
 TAMANHO_CONTRATOS = 500
 TAMANHO_CONTRATACOES = 50
-REQ_POR_MINUTO = 100
+REQ_POR_MINUTO = 30  # medido em 22/11/2026: 1 req a cada 1 s gera 429; 1 a cada 1,5 s não
 MAX_DIAS_JANELA = 365
 
 # Modalidades usadas na varredura de contratações (códigos do PNCP).

@@ -87,3 +87,11 @@ def test_resposta_204_encerra() -> None:
     respx.get(f"{base}/v1/contratos").mock(return_value=httpx.Response(204))
     cli = ClienteHttp(base, por_minuto=0)
     assert list(pncp.contratos(cli, "1", date(2025, 1, 1), date(2025, 1, 31))) == [[]]
+
+
+def test_inicio_da_busca() -> None:
+    from rastro.jobs.carga_pncp import inicio_da_busca
+
+    assert inicio_da_busca(date(2024, 1, 1), None) is None
+    assert inicio_da_busca(date(2024, 1, 1), date(2025, 3, 31)) == date(2025, 3, 1)
+    assert inicio_da_busca(date(2024, 1, 1), date(2024, 1, 10)) == date(2024, 1, 1)

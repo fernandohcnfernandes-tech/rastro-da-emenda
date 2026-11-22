@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -17,23 +17,37 @@ from rastro.jobs.execucao import Execucao
 from rastro.log import log
 
 FRACAO_MINIMA_VALOR = Decimal("0.10")  # contrato abaixo de 10% do menor repasse nunca passa no pré-filtro
-TRABALHADORES = 3
+TRABALHADORES = 2
 
 SQL_MONITORADOS = """
-WITH planos AS (
-    SELECT id_plano_acao, cnpj_beneficiario, uf_beneficiario,
-           coalesce(valor_custeio, 0) + coalesce(valor_investimento, 0) AS valor
-    FROM plano_acao WHERE ano_plano_acao >= :ano AND (:todas OR uf_beneficiario = ANY(:ufs))
+WITH pagos AS (
+    SELECT id_plano_acao, min(data_pagamento) AS primeiro_pagamento FROM pagamento
+    WHERE id_plano_acao IS NOT NULL GROUP BY id_plano_acao
+), planos AS (
+    SELECT p.id_plano_acao, p.cnpj_beneficiario, p.uf_beneficiario, pg.primeiro_pagamento,
+           coalesce(p.valor_custeio, 0) + coalesce(p.valor_investimento, 0) AS valor
+    FROM plano_acao p LEFT JOIN pagos pg USING (id_plano_acao)
+    WHERE p.ano_plano_acao >= :ano AND (:todas OR p.uf_beneficiario = ANY(:ufs))
 ), alvos AS (
-    SELECT cnpj_beneficiario AS cnpj, uf_beneficiario AS uf, valor FROM planos
+    SELECT cnpj_beneficiario AS cnpj, uf_beneficiario AS uf, valor, primeiro_pagamento FROM planos
     UNION ALL
     SELECT e.cnpj_executor, p.uf_beneficiario,
-           coalesce(nullif(coalesce(e.valor_custeio, 0) + coalesce(e.valor_investimento, 0), 0), p.valor)
+           coalesce(nullif(coalesce(e.valor_custeio, 0) + coalesce(e.valor_investimento, 0), 0), p.valor),
+           p.primeiro_pagamento
     FROM executor e JOIN planos p USING (id_plano_acao)
 )
-SELECT cnpj, min(uf) AS uf, min(nullif(valor, 0)) AS menor_valor
+SELECT cnpj, min(uf) AS uf, min(nullif(valor, 0)) AS menor_valor, min(primeiro_pagamento) AS primeiro_pagamento
 FROM alvos WHERE cnpj IS NOT NULL GROUP BY cnpj ORDER BY min(uf), cnpj
 """
+
+TOLERANCIA_DIAS = 30
+
+
+def inicio_da_busca(desde: date, primeiro_pagamento: date | None) -> date | None:
+    """Evidência só conta a partir do 1º pagamento − 30 dias; sem pagamento, não há o que buscar."""
+    if primeiro_pagamento is None:
+        return None
+    return max(desde, primeiro_pagamento - timedelta(days=TOLERANCIA_DIAS))
 
 
 def cnpjs_monitorados(desde: date, ufs: list[str] | None = None) -> list[Any]:
@@ -61,7 +75,11 @@ def carregar_contratos(desde: date, ate: date | None = None, ufs: list[str] | No
     tipo = "carga_inicial:pncp_contratos" + (f":{','.join(sorted(ufs))}" if ufs else "")
     execucao = Execucao(tipo)
     feitos: set[str] = set(execucao.progresso.get("feitos", []))
-    alvos = [a for a in cnpjs_monitorados(desde, ufs) if a.cnpj not in feitos]
+    alvos = [
+        a
+        for a in cnpjs_monitorados(desde, ufs)
+        if a.cnpj not in feitos and inicio_da_busca(desde, a.primeiro_pagamento) is not None
+    ]
     cli = pncp.cliente()
     trava = threading.Lock()
     totais = {"gravados": execucao.progresso.get("gravados", 0), "descartados_valor": 0, "erros": 0}
@@ -69,7 +87,7 @@ def carregar_contratos(desde: date, ate: date | None = None, ufs: list[str] | No
 
     def processar(alvo: Any) -> tuple[str, int, int]:
         gravados = descartados = 0
-        for pagina in pncp.contratos(cli, alvo.cnpj, desde, ate):
+        for pagina in pncp.contratos(cli, alvo.cnpj, inicio_da_busca(desde, alvo.primeiro_pagamento), ate):
             evid = [pncp.evidencia_de_contrato(r) for r in pagina]
             relevantes = [e for e in evid if valor_relevante(e["valor"], alvo.menor_valor)]
             descartados += len(evid) - len(relevantes)
@@ -138,7 +156,7 @@ def carregar_contratacoes(
         for ini, fim in pncp.janelas_mensais(desde, ate)
         if f"{uf}:{m}:{ini:%Y%m}" not in feitos
     ]
-    cli = pncp.cliente(por_minuto=60)
+    cli = pncp.cliente()
     totais = {"gravados": execucao.progresso.get("gravados", 0), "lidos": 0, "erros": 0}
     trava = threading.Lock()
     log("pncp", "contratacoes:inicio", tarefas=len(tarefas), ja_feitas=len(feitos))
