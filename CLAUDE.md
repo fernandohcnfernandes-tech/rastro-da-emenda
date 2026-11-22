@@ -87,3 +87,4 @@ Desenvolver em fases, nesta ordem: ambiente e banco → Transferegov → Portal 
 ## 10. Andamento
 
 - 22/11/2026: repositório criado com estrutura, documentação e esqueleto da API.
+- 22/11/2026 — **Fase 1 (ambiente e banco) concluída:** Postgres 16 via docker compose (porta configurável), `python -m rastro.db.migrar` aplica `schema.sql` + migrações, conexão SQLAlchemy (`rastro/db/conexao.py`), logs JSON (`rastro/log.py`), `/saude` respondendo. Decisões em `docs/decisoes.md`.

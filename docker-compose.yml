@@ -6,9 +6,14 @@ services:
       POSTGRES_PASSWORD: rastro
       POSTGRES_DB: rastro
     ports:
-      - "5432:5432"
+      # Porta do host configurável (RASTRO_DB_PORTA no .env); padrão 5432.
+      - "127.0.0.1:${RASTRO_DB_PORTA:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rastro -d rastro"]
+      interval: 5s
+      retries: 10
 
 volumes:
   pgdata:
