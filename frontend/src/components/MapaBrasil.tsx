@@ -1,11 +1,14 @@
 "use client";
 
 import { geoMercator, geoPath } from "d3-geo";
+import { select } from "d3-selection";
+import "d3-transition";
+import { type ZoomBehavior, type ZoomTransform, zoom, zoomIdentity } from "d3-zoom";
 import type { Feature, FeatureCollection, Geometry } from "geojson";
-import { ArrowRight, X } from "lucide-react";
+import { ArrowRight, Maximize2, Minus, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { CORES, CORES_TEXTO, ORDEM_STATUS, ROTULOS, UFS, brlCompacto, numero } from "@/lib/formato";
 import type { PontoMapa, Status } from "@/lib/tipos";
@@ -20,6 +23,12 @@ const PREFIXO_UF: Record<string, string> = {
   RS: "43", MS: "50", MT: "51", GO: "52", DF: "53",
 };
 const SEM_EMENDA = "#1a2740";
+const ZOOM_MAXIMO = 24;
+const BOTOES_ZOOM = [
+  { rotulo: "Aproximar", icone: Plus, fator: 1.8 },
+  { rotulo: "Afastar", icone: Minus, fator: 1 / 1.8 },
+  { rotulo: "Ver tudo", icone: Maximize2, fator: null },
+];
 
 export function MapaBrasil({ painel = false, altura = "" }: { painel?: boolean; altura?: string }) {
   const router = useRouter();
@@ -30,6 +39,9 @@ export function MapaBrasil({ painel = false, altura = "" }: { painel?: boolean; 
   const [foco, setFoco] = useState<{ ponto?: PontoMapa; codigo: string; x: number; y: number } | null>(null);
   const [selecionado, setSelecionado] = useState<PontoMapa | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [transformacao, setTransformacao] = useState<ZoomTransform>(zoomIdentity);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const zoomRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
 
   useEffect(() => {
     fetch("/malha/municipios.json")
@@ -58,6 +70,38 @@ export function MapaBrasil({ painel = false, altura = "" }: { painel?: boolean; 
     );
     return geoPath(projecao);
   }, [feicoes]);
+
+  // Zoom e arraste (roda do mouse, arrastar, pinça no celular, duplo clique); reinicia ao trocar de UF.
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const comportamento = zoom<SVGSVGElement, unknown>()
+      .scaleExtent([1, ZOOM_MAXIMO])
+      .translateExtent([
+        [0, 0],
+        [LARGURA, ALTURA],
+      ])
+      .clickDistance(4)
+      .on("zoom", (e) => {
+        setFoco(null);
+        setTransformacao(e.transform);
+      });
+    zoomRef.current = comportamento;
+    const selecao = select(svg);
+    selecao.call(comportamento).call(comportamento.transform, zoomIdentity);
+    return () => {
+      selecao.on(".zoom", null);
+    };
+  }, [caminho]);
+
+  function aplicarZoom(fator: number | null) {
+    const svg = svgRef.current;
+    const comportamento = zoomRef.current;
+    if (!svg || !comportamento) return;
+    const selecao = select(svg).transition().duration(250);
+    if (fator === null) comportamento.transform(selecao, zoomIdentity);
+    else comportamento.scaleBy(selecao, fator);
+  }
 
   const contagem = useMemo(() => {
     const c: Partial<Record<Status, number>> = {};
@@ -104,7 +148,14 @@ export function MapaBrasil({ painel = false, altura = "" }: { painel?: boolean; 
         {!caminho ? (
           <div className="flex h-[420px] items-center justify-center text-sm text-apoio">Carregando mapa…</div>
         ) : (
-          <svg viewBox={`0 0 ${LARGURA} ${ALTURA}`} className="mx-auto h-auto max-h-[78vh] w-full" role="img" aria-label="Mapa do Brasil por município">
+          <svg
+            ref={svgRef}
+            viewBox={`0 0 ${LARGURA} ${ALTURA}`}
+            className="mx-auto h-auto max-h-[78vh] w-full cursor-grab touch-none select-none active:cursor-grabbing"
+            role="img"
+            aria-label="Mapa do Brasil por município. Use a roda do mouse ou os botões para aproximar; arraste para mover."
+          >
+            <g transform={transformacao.toString()}>
             {feicoes.map((f) => {
               const p = pontos.get(f.properties.c);
               return (
@@ -113,7 +164,7 @@ export function MapaBrasil({ painel = false, altura = "" }: { painel?: boolean; 
                   d={caminho(f) ?? undefined}
                   fill={cor(p)}
                   stroke="#05070c"
-                  strokeWidth={uf ? 0.5 : 0.12}
+                  strokeWidth={(uf ? 0.5 : 0.12) / Math.sqrt(transformacao.k)}
                   className="cursor-pointer transition-opacity hover:opacity-70"
                   onMouseMove={(e) => {
                     const r = (e.currentTarget.ownerSVGElement as SVGSVGElement).getBoundingClientRect();
@@ -127,7 +178,28 @@ export function MapaBrasil({ painel = false, altura = "" }: { painel?: boolean; 
                 />
               );
             })}
+            </g>
           </svg>
+        )}
+        {caminho && (
+          <div className="absolute right-2 top-2 flex flex-col overflow-hidden rounded-lg border border-borda bg-lateral/90 shadow-cartao backdrop-blur">
+            {BOTOES_ZOOM.map(({ rotulo, icone: Icone, fator }) => (
+              <button
+                key={rotulo}
+                onClick={() => aplicarZoom(fator)}
+                title={rotulo}
+                aria-label={rotulo}
+                className="grid h-9 w-9 place-items-center border-b border-borda/70 text-apoio last:border-b-0 hover:bg-superficie-3 hover:text-white"
+              >
+                <Icone className="h-4 w-4" />
+              </button>
+            ))}
+          </div>
+        )}
+        {caminho && transformacao.k > 1.01 && (
+          <p className="pointer-events-none absolute bottom-2 left-2 rounded-md bg-lateral/80 px-2 py-1 text-[11px] tabular-nums text-apoio">
+            {transformacao.k.toFixed(1).replace(".", ",")}×
+          </p>
         )}
         {foco && (
           <div
