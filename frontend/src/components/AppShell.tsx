@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   BookOpen,
+  Building2,
   ChevronsLeft,
   ChevronsRight,
   FileText,
@@ -30,6 +31,7 @@ const GRUPOS: { titulo: string; itens: Item[] }[] = [
       { href: "/", rotulo: "Visão geral", icone: LayoutDashboard },
       { href: "/mapa", rotulo: "Mapa", icone: MapaIcone },
       { href: "/emendas", rotulo: "Emendas", icone: FileText },
+      { href: "/estados", rotulo: "Estados e DF", icone: Building2 },
       { href: "/municipios", rotulo: "Municípios", icone: Landmark },
       { href: "/parlamentares", rotulo: "Parlamentares", icone: Users },
     ],
@@ -49,6 +51,7 @@ const TITULOS: [RegExp, string][] = [
   [/^\/mapa/, "Mapa"],
   [/^\/emendas\/\d+/, "Ficha da emenda"],
   [/^\/emendas/, "Emendas"],
+  [/^\/estados/, "Estados e DF"],
   [/^\/municipios\/\d+/, "Município"],
   [/^\/municipios/, "Municípios"],
   [/^\/parlamentares\/.+/, "Parlamentar"],

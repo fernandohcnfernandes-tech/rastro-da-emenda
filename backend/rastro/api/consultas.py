@@ -49,6 +49,7 @@ WHERE p.ano_plano_acao >= 2024
   AND (CAST(:ano AS integer) IS NULL OR p.emenda_ano = :ano)
   AND (CAST(:status AS text) IS NULL OR a.status::text = :status)
   AND (CAST(:alerta AS text) IS NULL OR CAST(:alerta AS text) = ANY(a.alertas))
+  AND (CAST(:esfera AS text) IS NULL OR en.esfera = :esfera)
   AND (CAST(:busca AS text) IS NULL OR unaccent_simples(concat_ws(' ', p.nome_beneficiario, m.nome, p.parlamentar_nome,
        p.objeto_declarado, p.emenda_numero, p.codigo_plano_acao)) ILIKE unaccent_simples(:busca_like))
 """
@@ -70,9 +71,11 @@ def filtros(
     status: str | None = None,
     busca: str | None = None,
     alerta: str | None = None,
+    esfera: str | None = None,
 ) -> dict[str, Any]:
     return {
         "alerta": alerta,
+        "esfera": esfera,
         "uf": uf.upper() if uf else None,
         "municipio": municipio,
         "municipio_like": f"%{municipio}%" if municipio else None,
@@ -306,6 +309,28 @@ def mapa(conn: Connection, uf: str | None = None) -> list[dict[str, Any]]:
     return linhas
 
 
+def mapa_estados(conn: Connection) -> list[dict[str, Any]]:
+    """Semáforo das emendas destinadas aos governos estaduais e do DF, por UF."""
+    linhas = _linhas(
+        conn,
+        "SELECT en.uf, min(en.nome) AS nome, min(en.populacao) AS populacao, min(en.coberto_tce) AS coberto_tce,"
+        " bool_or(en.coberto_querido_diario) AS coberto_querido_diario,"
+        " count(*) AS emendas, sum(coalesce(pg.v, 0)) AS repassado,"
+        " count(*) FILTER (WHERE a.status = 'verde') AS verde,"
+        " count(*) FILTER (WHERE a.status = 'amarelo') AS amarelo,"
+        " count(*) FILTER (WHERE a.status = 'vermelho') AS vermelho,"
+        " count(*) FILTER (WHERE a.status = 'azul') AS azul,"
+        " count(*) FILTER (WHERE a.status = 'cinza' OR a.status IS NULL) AS cinza"
+        " FROM plano_acao p JOIN ente en ON en.cnpj = p.cnpj_beneficiario"
+        " LEFT JOIN avaliacao a ON a.id_plano_acao = p.id_plano_acao"
+        " LEFT JOIN LATERAL (SELECT sum(valor) v FROM pagamento g WHERE g.id_plano_acao = p.id_plano_acao) pg ON true"
+        " WHERE p.ano_plano_acao >= 2024 AND en.esfera = 'estadual' GROUP BY en.uf ORDER BY en.uf",
+    )
+    for linha in linhas:
+        linha["status"] = status_predominante(linha)
+    return linhas
+
+
 def status_predominante(contagens: dict[str, int]) -> str:
     """Cor do município no mapa: vermelho se houver qualquer vermelho; senão a maioria entre os demais."""
     if contagens.get("vermelho"):
@@ -390,13 +415,19 @@ def resumo(conn: Connection) -> dict[str, Any]:
     )
     por_uf = _linhas(
         conn,
-        "SELECT p.uf_beneficiario AS uf, count(*) AS emendas,"
+        "SELECT p.uf_beneficiario AS uf, count(*) AS emendas, sum(coalesce(pg.v, 0)) AS repassado,"
+        " sum(coalesce(pg.v, 0)) FILTER (WHERE a.status = 'verde') AS verde_valor,"
+        " sum(coalesce(pg.v, 0)) FILTER (WHERE a.status = 'amarelo') AS amarelo_valor,"
+        " sum(coalesce(pg.v, 0)) FILTER (WHERE a.status = 'vermelho') AS vermelho_valor,"
+        " sum(coalesce(pg.v, 0)) FILTER (WHERE a.status = 'azul') AS azul_valor,"
+        " sum(coalesce(pg.v, 0)) FILTER (WHERE a.status = 'cinza' OR a.status IS NULL) AS cinza_valor,"
         " count(*) FILTER (WHERE a.status = 'verde') AS verde,"
         " count(*) FILTER (WHERE a.status = 'amarelo') AS amarelo,"
         " count(*) FILTER (WHERE a.status = 'vermelho') AS vermelho,"
         " count(*) FILTER (WHERE a.status = 'azul') AS azul,"
         " count(*) FILTER (WHERE a.status = 'cinza' OR a.status IS NULL) AS cinza"
         " FROM plano_acao p LEFT JOIN avaliacao a USING (id_plano_acao)"
+        " LEFT JOIN LATERAL (SELECT sum(valor) v FROM pagamento g WHERE g.id_plano_acao = p.id_plano_acao) pg ON true"
         " WHERE p.ano_plano_acao >= 2024 AND p.uf_beneficiario IS NOT NULL GROUP BY 1 ORDER BY 1",
     )
     avaliadas_com_fonte = sum(status.get(s, 0) for s in ("verde", "amarelo", "vermelho"))
@@ -527,3 +558,133 @@ def listar_parlamentares(
     for i in itens:
         i["status"] = status_predominante(i)
     return {"total": total, "pagina": pagina, "tamanho": tamanho, "itens": itens}
+
+
+def _ultima(conn: Connection, padrao: str) -> Any:
+    return limpar(
+        conn.execute(
+            text("SELECT max(coalesce(fim, inicio)) FROM execucao_job WHERE tipo LIKE :p AND status = 'concluido'"),
+            {"p": padrao},
+        ).scalar()
+    )
+
+
+def coleta(conn: Connection) -> list[dict[str, Any]]:
+    """Resumo do que já foi coletado, por fonte: quantidades, período abrangido e última coleta concluída."""
+
+    def um(sql: str, params: dict | None = None) -> dict[str, Any]:
+        return limpar(dict(conn.execute(text(sql), params or {}).one()._mapping))
+
+    tg = um(
+        "SELECT (SELECT count(*) FROM plano_acao WHERE ano_plano_acao >= 2024) AS planos,"
+        " (SELECT min(ano_plano_acao) FROM plano_acao WHERE ano_plano_acao >= 2024) AS ano_inicial,"
+        " (SELECT max(ano_plano_acao) FROM plano_acao) AS ano_final,"
+        " (SELECT count(*) FROM executor) AS executores, (SELECT count(*) FROM meta) AS metas,"
+        " (SELECT count(*) FROM empenho) AS empenhos, (SELECT count(*) FROM pagamento) AS pagamentos,"
+        " (SELECT min(data_pagamento) FROM pagamento) AS pagamento_inicial,"
+        " (SELECT max(data_pagamento) FROM pagamento) AS pagamento_final,"
+        " (SELECT sum(valor) FROM pagamento) AS valor_pago,"
+        " (SELECT count(*) FROM relatorio_gestao) AS relatorios"
+    )
+    portal = um(
+        "SELECT count(*) AS emendas, min(ano) AS ano_inicial, max(ano) AS ano_final, sum(valor_pago) AS valor_pago,"
+        " max(origem) AS origem, (SELECT count(*) FROM plano_acao WHERE objeto_declarado IS NOT NULL) AS objetos"
+        " FROM emenda"
+    )
+    pncp = um(
+        "SELECT count(*) FILTER (WHERE fonte = 'pncp_contrato') AS contratos,"
+        " count(*) FILTER (WHERE fonte = 'pncp_contratacao') AS contratacoes,"
+        " min(data_publicacao) AS inicio, max(data_publicacao) AS fim,"
+        " (SELECT count(*) FROM cobertura_pncp) AS cnpjs_consultados,"
+        " (SELECT count(*) FROM cobertura_pncp WHERE contratos_encontrados > 0) AS cnpjs_com_registro"
+        " FROM evidencia WHERE fonte IN ('pncp_contrato', 'pncp_contratacao')"
+    )
+    pncp["cnpjs_monitorados"] = conn.execute(
+        text(
+            "SELECT count(*) FROM (SELECT cnpj_beneficiario FROM plano_acao WHERE ano_plano_acao >= 2024"
+            " UNION SELECT e.cnpj_executor FROM executor e JOIN plano_acao p USING (id_plano_acao)"
+            " WHERE p.ano_plano_acao >= 2024) x"
+        )
+    ).scalar_one()
+    qd = um(
+        "SELECT count(*) AS trechos, count(DISTINCT codigo_ibge) AS municipios_com_trechos,"
+        " min(data_publicacao) AS inicio, max(data_publicacao) AS fim,"
+        " (SELECT count(*) FROM municipio WHERE coberto_querido_diario) AS territorios_cobertos,"
+        " (SELECT count(*) FROM ente WHERE coberto_querido_diario) AS entes_cobertos"
+        " FROM evidencia WHERE fonte = 'querido_diario'"
+    )
+    tces = _linhas(
+        conn,
+        "SELECT upper(split_part(id_externo, ':', 1)) AS uf, count(*) AS contratos, min(data_publicacao) AS inicio,"
+        " max(data_publicacao) AS fim, count(DISTINCT cnpj_orgao) AS entes FROM evidencia WHERE fonte = 'tce_contrato'"
+        " GROUP BY 1 ORDER BY 1",
+    )
+    congresso = um(
+        "SELECT count(*) FILTER (WHERE casa = 'camara') AS deputados,"
+        " count(*) FILTER (WHERE casa = 'senado') AS senadores,"
+        " (SELECT count(*) FROM parlamentar_autor) AS autores_ligados,"
+        " (SELECT count(DISTINCT parlamentar_nome) FROM plano_acao WHERE ano_plano_acao >= 2024) AS autores"
+        " FROM parlamentar"
+    )
+    ibge = um("SELECT count(*) AS municipios, max(ano_populacao) AS ano_populacao FROM municipio")
+    return [
+        {
+            "fonte": "transferegov",
+            "nome": "Transferegov — Transferências Especiais",
+            "url": "https://api.transferegov.gestao.gov.br/transferenciasespeciais/",
+            "periodo": [tg["pagamento_inicial"], tg["pagamento_final"]],
+            "ultima_coleta": _ultima(conn, "%transferegov%"),
+            "numeros": tg,
+        },
+        {
+            "fonte": "portal",
+            "nome": "Portal da Transparência (CGU)",
+            "url": "https://portaldatransparencia.gov.br/emendas",
+            "periodo": [portal["ano_inicial"], portal["ano_final"]],
+            "ultima_coleta": _ultima(conn, "%portal%"),
+            "numeros": portal,
+        },
+        {
+            "fonte": "pncp",
+            "nome": "PNCP — contratos e contratações",
+            "url": "https://pncp.gov.br",
+            "periodo": [pncp["inicio"], pncp["fim"]],
+            "ultima_coleta": _ultima(conn, "%pncp%"),
+            "numeros": pncp,
+        },
+        {
+            "fonte": "tce",
+            "nome": "Tribunais de Contas (dados abertos)",
+            "url": "https://dados.tce.rs.gov.br",
+            "periodo": [
+                min((t["inicio"] for t in tces if t["inicio"]), default=None),
+                max((t["fim"] for t in tces if t["fim"]), default=None),
+            ],
+            "ultima_coleta": _ultima(conn, "carga:tce%"),
+            "numeros": {"contratos": sum(t["contratos"] for t in tces), "por_uf": tces},
+        },
+        {
+            "fonte": "querido_diario",
+            "nome": "Querido Diário (Open Knowledge Brasil)",
+            "url": "https://queridodiario.ok.org.br",
+            "periodo": [qd["inicio"], qd["fim"]],
+            "ultima_coleta": _ultima(conn, "querido_diario%"),
+            "numeros": qd,
+        },
+        {
+            "fonte": "congresso",
+            "nome": "Câmara dos Deputados e Senado Federal",
+            "url": "https://dadosabertos.camara.leg.br",
+            "periodo": ["2023-02-01", None],
+            "ultima_coleta": _ultima(conn, "carga:congresso"),
+            "numeros": congresso,
+        },
+        {
+            "fonte": "ibge",
+            "nome": "IBGE",
+            "url": "https://servicodados.ibge.gov.br/api/docs",
+            "periodo": [ibge["ano_populacao"], ibge["ano_populacao"]],
+            "ultima_coleta": _ultima(conn, "%ibge%"),
+            "numeros": ibge,
+        },
+    ]

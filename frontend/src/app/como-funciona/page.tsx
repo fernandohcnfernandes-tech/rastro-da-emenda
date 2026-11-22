@@ -8,7 +8,7 @@ const SEMAFORO: [Status, string][] = [
   ["verde", "Há contrato (PNCP) ou extrato de contrato (diário oficial) compatível com o objeto e o valor da emenda, com confiança de pelo menos 60%."],
   ["amarelo", "Evidência parcial: licitação ou contratação em andamento sem contrato, ou contratos compatíveis que cobrem menos de 70% do valor repassado."],
   ["vermelho", "Pago há mais de 180 dias e nenhuma evidência nas fontes que cobrem o ente. É um indício para apuração, nunca uma acusação."],
-  ["azul", "Município com até 20 mil habitantes, sem registros no PNCP, fora da cobertura do Querido Diário e sem dados abertos de contratos do Tribunal de Contas: não há fonte pública para verificar. Neutro."],
+  ["azul", "Ente sem nenhuma fonte pública para verificar: município com até 20 mil habitantes sem registros no PNCP, fora da cobertura do Querido Diário e sem dados abertos de contratos do Tribunal de Contas. Neutro — não é indício de problema."],
   ["cinza", "Dados insuficientes (sem pagamento, sem objeto ou sem código IBGE) ou pagamento recente, ainda dentro do prazo de 180 dias."],
 ];
 
@@ -25,10 +25,9 @@ const ALERTAS: [string, string][] = [
 const FONTES: [string, string, string][] = [
   ["Transferegov — Transferências Especiais (MGI)", "Planos de ação, executores, metas, empenhos, ordens bancárias e relatórios de gestão.", "https://api.transferegov.gestao.gov.br/transferenciasespeciais/"],
   ["Portal da Transparência (CGU)", "Emendas parlamentares, autor e objeto declarado de cada plano de ação.", "https://portaldatransparencia.gov.br/emendas"],
-  ["IBGE", "Códigos de municípios, população estimada e malha do mapa.", "https://servicodados.ibge.gov.br/api/docs"],
-  ["PNCP — Portal Nacional de Contratações Públicas", "Contratos e contratações dos CNPJs beneficiários e executores.", "https://pncp.gov.br/api/consulta/swagger-ui/index.html"],
-  ["Querido Diário (Open Knowledge Brasil)", "Diários oficiais de municípios pequenos cobertos pelo projeto.", "https://queridodiario.ok.org.br"],
-  ["Tribunais de Contas — dados abertos", "Contratos que os municípios informam ao TCE-RS (LicitaCon), TCE-SP (Audesp), TCE-PI (Mural de Contratos) e TCE-RN.", "https://dados.tce.rs.gov.br"],
+  ["IBGE", "Códigos de municípios e estados, população estimada e malhas do mapa.", "https://servicodados.ibge.gov.br/api/docs"],
+  ["PNCP — Portal Nacional de Contratações Públicas", "Contratos e contratações dos CNPJs beneficiários (municípios, estados e DF) e dos executores (secretarias e fundos).", "https://pncp.gov.br/api/consulta/swagger-ui/index.html"],
+  ["Câmara dos Deputados e Senado Federal", "Partido, UF, foto e contato institucional dos parlamentares autores.", "https://dadosabertos.camara.leg.br"],
 ];
 
 export default function ComoFunciona() {
@@ -54,8 +53,8 @@ export default function ComoFunciona() {
         <ol className="mt-2 list-decimal space-y-1 pl-5 text-cinza-claro">
           <li>Coletamos valor, parlamentar, beneficiário, executores, pagamentos e plano de trabalho (Transferegov e Portal da Transparência).</li>
           <li>Procuramos contratos e contratações do CNPJ beneficiário e dos executores no PNCP, a partir do 1º pagamento (menos 30 dias).</li>
-          <li>Em municípios com até 20 mil habitantes, também buscamos extratos de contrato, avisos de licitação e dispensas no Querido Diário.</li>
-          <li>Em RS, SP, PI e RN, usamos também os contratos que os municípios informam ao Tribunal de Contas do estado, em dados abertos.</li>
+          <li>Para municípios e para o DF sem evidência no PNCP, buscamos extratos de contrato, avisos de licitação, homologações e dispensas nos diários oficiais, pelo Querido Diário.</li>
+          <li>Em RS, SP, PI e RN, usamos também os contratos que municípios e órgãos estaduais informam ao Tribunal de Contas, em dados abertos.</li>
           <li>Um pré-filtro (CNPJ, data, faixa de valor e semelhança de texto) seleciona até 5 candidatos por emenda.</li>
           <li>Uma IA compara cada candidato com o objeto da emenda e devolve compatibilidade, confiança, justificativa e trechos citados. Sem IA configurada, uma regra transparente de semelhança e valor faz essa etapa — e a ficha indica isso.</li>
           <li>Regras de alerta e o semáforo são calculados e geram a ficha, o dossiê em PDF e os alertas por e-mail.</li>
@@ -100,6 +99,35 @@ export default function ComoFunciona() {
             </li>
           ))}
         </ul>
+
+        <div className="mt-6 space-y-3">
+          <h3 className="font-semibold text-texto">Querido Diário</h3>
+          <p>
+            O{" "}
+            <a href="https://queridodiario.ok.org.br" target="_blank" rel="noreferrer" className="font-semibold text-destaque hover:underline">
+              Querido Diário
+            </a>{" "}
+            é uma iniciativa de tecnologia cívica da <strong>Open Knowledge Brasil</strong>, organização sem fins lucrativos que promove dados abertos
+            e transparência. O projeto coleta os diários oficiais publicados pelas prefeituras — cada uma num site e formato diferente, muitas vezes em
+            PDF —, extrai o texto e o disponibiliza de forma padronizada, com busca e uma API pública e gratuita. O código é aberto e feito com a
+            participação de voluntários. Para municípios que não publicam suas contratações no PNCP (em especial os com até 20 mil habitantes, que
+            podem usar só o diário oficial até 2027), é a principal forma de encontrar extratos de contrato e avisos de licitação. A cobertura com
+            texto pesquisável alcança cerca de 500 municípios e cresce continuamente; no DF, inclui o Diário Oficial do Distrito Federal (DODF).
+          </p>
+          <h3 className="pt-2 font-semibold text-texto">Tribunais de Contas</h3>
+          <p>
+            Todos os municípios e estados prestam contas de licitações e contratos aos Tribunais de Contas, mas cada tribunal publica esses dados
+            de um jeito. Usamos <strong>apenas os que disponibilizam os dados por API pública ou arquivo aberto, sem cadastro, captcha ou login</strong>:
+            hoje, o{" "}
+            <a href="https://dados.tce.rs.gov.br" target="_blank" rel="noreferrer" className="text-destaque hover:underline">TCE-RS</a> (LicitaCon), o{" "}
+            <a href="https://transparencia.tce.sp.gov.br" target="_blank" rel="noreferrer" className="text-destaque hover:underline">TCE-SP</a> (Audesp), o{" "}
+            <a href="https://www.tcepi.tc.br/portaldacidadania/dados-abertos" target="_blank" rel="noreferrer" className="text-destaque hover:underline">TCE-PI</a>{" "}
+            (Mural de Contratos) e o{" "}
+            <a href="https://apidadosabertos.tce.rn.gov.br" target="_blank" rel="noreferrer" className="text-destaque hover:underline">TCE-RN</a>. Nos demais
+            estados, os dados de contratos municipais não estão disponíveis em formato aberto ou só aparecem em páginas de consulta, que não usamos
+            para respeitar os termos de uso dos sites.
+          </p>
+        </div>
       </section>
 
       <section>
@@ -111,8 +139,12 @@ export default function ComoFunciona() {
           </li>
           <li>
             <strong>Cobertura do Querido Diário e dos Tribunais de Contas:</strong> o Querido Diário tem busca de texto em cerca de 500
-            municípios, e integramos os Tribunais de Contas que publicam contratos municipais em dados abertos (RS, SP, PI e RN). Município pequeno sem nenhuma dessas
-            fontes e sem registros no PNCP recebe azul (sem fonte para verificar), não vermelho.
+            municípios (e no DF), e só integramos os Tribunais de Contas com API pública ou dados abertos (RS, SP, PI e RN). Município pequeno
+            sem nenhuma dessas fontes e sem registros no PNCP recebe azul (sem fonte para verificar), não vermelho.
+          </li>
+          <li>
+            <strong>Estados e DF:</strong> buscamos contratos do CNPJ do governo e dos órgãos executores indicados no plano de ação. Contratos
+            assinados por outros órgãos estaduais só entram quando o Tribunal de Contas publica os dados (RS e PI).
           </li>
           <li>O recurso da emenda Pix entra no caixa do ente e não exige conta específica: a ligação com um contrato é feita por objeto, valor, data e CNPJ — por isso falamos em evidência e indício.</li>
           <li>Contratos abaixo de 10% do repasse não são considerados; emendas executadas por meio de vários contratos pequenos podem aparecer como amarelo.</li>

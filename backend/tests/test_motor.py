@@ -271,3 +271,16 @@ def test_similaridade_combinada_aproxima_variacoes_e_ignora_preambulo() -> None:
     nota_contrato, nota_outro = sim.pontuar(plano, [contrato, outro])
     assert nota_contrato > 0.2 > nota_outro
     assert "celebram" not in normalizar_texto(contrato)
+
+
+def test_querido_diario_cobre_ente_que_nao_e_pequeno() -> None:
+    d = dados(populacao=80_000, coberto_querido_diario=True)
+    assert d.fontes_que_cobrem == ["PNCP", "Querido Diário"]
+
+
+def test_sem_consulta_ao_pncp_fica_cinza_sem_a1() -> None:
+    status, alertas, just = semaforo.avaliar(dados(pncp_verificado=False))
+    assert status == "cinza" and "A1" not in alertas and "Verificação em andamento" in just
+    # evidência de outra fonte (ex.: Tribunal de Contas) continua valendo
+    c = corr(fonte="tce_contrato")
+    assert semaforo.avaliar(dados(pncp_verificado=False, correspondencias=[c]))[0] == "verde"

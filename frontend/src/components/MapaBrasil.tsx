@@ -22,6 +22,8 @@ const PREFIXO_UF: Record<string, string> = {
   PB: "25", PE: "26", AL: "27", SE: "28", BA: "29", MG: "31", ES: "32", RJ: "33", SP: "35", PR: "41", SC: "42",
   RS: "43", MS: "50", MT: "51", GO: "52", DF: "53",
 };
+const SIGLA_POR_CODIGO = Object.fromEntries(Object.entries(PREFIXO_UF).map(([sigla, codigo]) => [codigo, sigla]));
+type Camada = "municipios" | "estados";
 const SEM_EMENDA = "var(--t-mapa-vazio)";
 const FILTRADO = "var(--t-mapa-filtrado)";
 const ZOOM_MAXIMO = 24;
@@ -36,16 +38,22 @@ export function MapaBrasil({
   altura = "",
   filtro: filtroExterno,
   aoFiltrar,
+  camadaInicial = "municipios",
 }: {
   painel?: boolean;
   altura?: string;
   /** Filtro controlado de fora (ex.: cartões da visão geral). Vazio = todos os status. */
   filtro?: Status[];
   aoFiltrar?: (filtro: Status[]) => void;
+  /** Municípios ou governos estaduais e do DF. */
+  camadaInicial?: Camada;
 }) {
   const router = useRouter();
   const [malha, setMalha] = useState<FeatureCollection<Geometry, { c: string }> | null>(null);
   const [pontos, setPontos] = useState<Map<string, PontoMapa>>(new Map());
+  const [malhaUf, setMalhaUf] = useState<FeatureCollection<Geometry, { c: string }> | null>(null);
+  const [pontosUf, setPontosUf] = useState<Map<string, PontoMapa>>(new Map());
+  const [camada, setCamada] = useState<Camada>(camadaInicial);
   const [uf, setUf] = useState("");
   const [filtroInterno, setFiltroInterno] = useState<Status[]>([]);
   const filtro = filtroExterno ?? filtroInterno;
@@ -69,12 +77,31 @@ export function MapaBrasil({
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((lista: PontoMapa[]) => setPontos(new Map(lista.map((p) => [p.codigo_ibge, p]))))
       .catch(() => setErro("API indisponível: o mapa aparece sem cores."));
+    fetch("/malha/ufs.json")
+      .then((r) => r.json())
+      .then(setMalhaUf)
+      .catch(() => undefined);
+    fetch("/api/mapa/estados")
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((lista: (Omit<PontoMapa, "codigo_ibge" | "municipio"> & { nome: string })[]) =>
+        setPontosUf(
+          new Map(
+            lista.map((e) => [PREFIXO_UF[e.uf], { ...e, codigo_ibge: PREFIXO_UF[e.uf], municipio: e.nome } as PontoMapa]),
+          ),
+        ),
+      )
+      .catch(() => undefined);
   }, []);
 
+  const estados = camada === "estados";
+  const ativos = estados ? pontosUf : pontos;
+  const destino = (p: PontoMapa) => (estados ? `/emendas?uf=${p.uf}&esfera=estadual` : `/municipios/${p.codigo_ibge}`);
+
   const feicoes = useMemo<Municipio[]>(() => {
+    if (estados) return malhaUf?.features ?? [];
     if (!malha) return [];
     return uf ? malha.features.filter((f) => f.properties.c.startsWith(PREFIXO_UF[uf])) : malha.features;
-  }, [malha, uf]);
+  }, [malha, malhaUf, uf, estados]);
 
   const caminho = useMemo(() => {
     if (!feicoes.length) return null;
@@ -122,9 +149,9 @@ export function MapaBrasil({
 
   const contagem = useMemo(() => {
     const c: Partial<Record<Status, number>> = {};
-    for (const p of pontos.values()) if (!uf || p.uf === uf) c[p.status] = (c[p.status] ?? 0) + 1;
+    for (const p of ativos.values()) if (estados || !uf || p.uf === uf) c[p.status] = (c[p.status] ?? 0) + 1;
     return c;
-  }, [pontos, uf]);
+  }, [ativos, uf, estados]);
 
   function cor(p?: PontoMapa): string {
     if (!p) return SEM_EMENDA;
@@ -135,7 +162,31 @@ export function MapaBrasil({
   return (
     <div className={`relative ${painel && selecionado ? "lg:pr-[340px]" : ""}`}>
       <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div role="group" aria-label="Camada do mapa" className="flex overflow-hidden rounded-lg border border-borda">
+          {(
+            [
+              ["municipios", "Municípios"],
+              ["estados", "Estados e DF"],
+            ] as [Camada, string][]
+          ).map(([valor, rotulo]) => (
+            <button
+              key={valor}
+              type="button"
+              aria-pressed={camada === valor}
+              onClick={() => {
+                setCamada(valor);
+                setSelecionado(null);
+              }}
+              className={`h-9 px-3 text-sm transition ${
+                camada === valor ? "bg-primaria text-white" : "bg-superficie text-apoio hover:text-texto"
+              }`}
+            >
+              {rotulo}
+            </button>
+          ))}
+        </div>
         <select
+          hidden={estados}
           value={uf}
           onChange={(e) => setUf(e.target.value)}
           aria-label="Filtrar por UF"
@@ -174,13 +225,13 @@ export function MapaBrasil({
           >
             <g transform={transformacao.toString()}>
             {feicoes.map((f) => {
-              const p = pontos.get(f.properties.c);
+              const p = ativos.get(f.properties.c);
               return (
                 <path
                   key={f.properties.c}
                   d={caminho(f) ?? undefined}
                   style={{ fill: cor(p), stroke: "var(--t-mapa-borda)" }}
-                  strokeWidth={(uf ? 0.5 : 0.12) / Math.sqrt(transformacao.k)}
+                  strokeWidth={(estados ? 0.9 : uf ? 0.5 : 0.12) / Math.sqrt(transformacao.k)}
                   className="cursor-pointer transition-opacity hover:opacity-70"
                   onMouseMove={(e) => {
                     const r = (e.currentTarget.ownerSVGElement as SVGSVGElement).getBoundingClientRect();
@@ -189,7 +240,8 @@ export function MapaBrasil({
                   onMouseLeave={() => setFoco(null)}
                   onClick={() => {
                     if (painel && p) setSelecionado(p);
-                    else router.push(`/municipios/${f.properties.c}`);
+                    else if (p) router.push(destino(p));
+                    else if (!estados) router.push(`/municipios/${f.properties.c}`);
                   }}
                 />
               );
@@ -240,7 +292,11 @@ export function MapaBrasil({
                 </p>
               </>
             ) : (
-              <p className="text-apoio">Sem emenda Pix municipal desde 2024 (IBGE {foco.codigo}).</p>
+              <p className="text-apoio">
+                {estados
+                  ? `Sem emenda Pix para o governo de ${SIGLA_POR_CODIGO[foco.codigo] ?? foco.codigo} desde 2024.`
+                  : `Sem emenda Pix municipal desde 2024 (IBGE ${foco.codigo}).`}
+              </p>
             )}
           </div>
         )}
@@ -249,7 +305,7 @@ export function MapaBrasil({
         <aside className="cartao mt-4 p-5 lg:absolute lg:right-0 lg:top-0 lg:mt-0 lg:w-[320px]" aria-label="Resumo do município">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-rotulo">Município · {selecionado.uf}</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-rotulo">{estados ? "Governo estadual" : "Município"} · {selecionado.uf}</p>
               <h3 className="text-xl font-semibold">{selecionado.municipio}</h3>
             </div>
             <button onClick={() => setSelecionado(null)} className="rounded-lg p-1.5 text-apoio hover:bg-superficie-3" aria-label="Fechar painel">
@@ -280,7 +336,7 @@ export function MapaBrasil({
             ))}
           </ul>
           <Link
-            href={`/municipios/${selecionado.codigo_ibge}`}
+            href={destino(selecionado)}
             className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primaria px-4 py-2.5 text-sm font-medium text-white shadow-primaria hover:bg-primaria-escura"
           >
             Ver {selecionado.emendas} emenda(s) <ArrowRight className="h-4 w-4" />

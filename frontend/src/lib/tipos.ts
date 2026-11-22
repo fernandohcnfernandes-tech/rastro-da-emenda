@@ -152,7 +152,16 @@ export interface Resumo {
   status: Partial<Record<Status, number>>;
   percentual_com_evidencia: number | null;
   ranking_indicios: { codigo_ibge: string; municipio: string; uf: string; vermelhas: number; repassado_vermelho: number }[];
-  por_uf: ({ uf: string; emendas: number } & Contagem)[];
+  por_uf: ({
+    uf: string;
+    emendas: number;
+    repassado: number;
+    verde_valor: number | null;
+    amarelo_valor: number | null;
+    vermelho_valor: number | null;
+    azul_valor: number | null;
+    cinza_valor: number | null;
+  } & Contagem)[];
 }
 
 export interface AlertaResumo {

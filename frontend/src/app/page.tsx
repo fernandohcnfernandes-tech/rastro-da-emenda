@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { GraficoUF } from "@/components/GraficoUF";
 import { PainelVisaoGeral } from "@/components/PainelVisaoGeral";
 import { BotaoLink, Cartao, ErroApi, Rotulo, TituloCartao } from "@/components/ui";
 import { api } from "@/lib/api";
-import { CORES, ORDEM_STATUS, brlCompacto, numero } from "@/lib/formato";
+import { brlCompacto } from "@/lib/formato";
 import type { Resumo } from "@/lib/tipos";
 
 async function Painel() {
@@ -14,7 +15,6 @@ async function Painel() {
   } catch {
     return <ErroApi />;
   }
-  const maiorUf = Math.max(1, ...r.por_uf.map((u) => u.emendas));
   return (
     <div className="space-y-6">
       <PainelVisaoGeral
@@ -55,24 +55,7 @@ async function Painel() {
         }
       />
 
-      <Cartao>
-        <TituloCartao>Emendas por UF</TituloCartao>
-        <ul className="grid gap-x-8 gap-y-2 md:grid-cols-2">
-          {r.por_uf.map((u) => (
-            <li key={u.uf} className="flex items-center gap-3 text-sm">
-              <Link href={`/emendas?uf=${u.uf}`} className="w-7 font-medium text-cinza-claro hover:text-forte">
-                {u.uf}
-              </Link>
-              <div className="flex h-2 flex-1 overflow-hidden rounded-full bg-superficie-3">
-                <div className="flex h-full" style={{ width: `${(100 * u.emendas) / maiorUf}%` }}>
-                  {ORDEM_STATUS.map((s) => (u[s] ? <div key={s} style={{ flex: u[s], background: CORES[s] }} /> : null))}
-                </div>
-              </div>
-              <span className="w-14 text-right tabular-nums text-discreto">{numero(u.emendas)}</span>
-            </li>
-          ))}
-        </ul>
-      </Cartao>
+      <GraficoUF porUf={r.por_uf} />
     </div>
   );
 }

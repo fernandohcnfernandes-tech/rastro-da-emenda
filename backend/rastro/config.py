@@ -11,6 +11,10 @@ class Config(BaseSettings):
     database_url: str = "postgresql+psycopg://rastro:rastro@localhost:5432/rastro"
 
     anthropic_api_key: str = ""
+    anthropic_workspace_id: str = ""  # exigido quando a chave não é vinculada a um workspace
+    # Classificação em massa pelo motor custa por chamada: só liga com decisão explícita (MOTOR_USA_IA=true).
+    motor_usa_ia: bool = False
+    modelo_motor: str = ""  # vazio = MODELO_ANALISE para contratos e MODELO_RAPIDO para diários
     modelo_rapido: str = "claude-haiku-5-5"
     modelo_analise: str = "claude-sonnet-5-5"
 

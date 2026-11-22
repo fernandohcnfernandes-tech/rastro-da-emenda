@@ -101,6 +101,21 @@ def _popular() -> None:
             )
         )
         c.execute(text("INSERT INTO parlamentar_autor VALUES ('Fulana de Tal', 'camara:9', 'exato')"))
+        c.execute(
+            text(
+                "INSERT INTO ente (cnpj, nome, uf, esfera, codigo_ibge, populacao, obrigado_pncp)"
+                " VALUES ('22222222000122', 'ESTADO DO RIO GRANDE DO NORTE', 'RN', 'estadual', '2400000',"
+                " 3400000, true)"
+            )
+        )
+        c.execute(
+            text(
+                "INSERT INTO plano_acao (id_plano_acao, codigo_plano_acao, ano_plano_acao, emenda_ano, emenda_numero,"
+                " parlamentar_nome, cnpj_beneficiario, nome_beneficiario, uf_beneficiario, valor_investimento,"
+                " objeto_declarado) VALUES (3, '09032024-000003', 2024, 2024, '202400010003', 'Beltrano',"
+                " '22222222000122', 'ESTADO DO RIO GRANDE DO NORTE', 'RN', 900000, 'Ponte estadual')"
+            )
+        )
         ev = c.execute(
             text(
                 "INSERT INTO evidencia (fonte, id_externo, cnpj_orgao, data_publicacao, objeto, valor, tipo_ato,"
@@ -124,7 +139,7 @@ def test_saude(cliente) -> None:
 
 
 def test_listar_emendas_com_filtros(cliente) -> None:
-    r = cliente.get("/emendas", params={"uf": "RN"}).json()
+    r = cliente.get("/emendas", params={"uf": "RN", "esfera": "municipal"}).json()
     assert r["total"] == 2 and r["resumo_status"] == {"verde": 1, "vermelho": 1}
     assert cliente.get("/emendas", params={"status": "vermelho"}).json()["total"] == 1
     assert cliente.get("/emendas", params={"parlamentar": "fulana"}).json()["total"] == 2
@@ -197,7 +212,7 @@ def test_status_predominante() -> None:
 
 def test_resumo_alertas_e_listas(cliente) -> None:
     r = cliente.get("/resumo").json()
-    assert r["emendas"] == 2 and r["status"] == {"verde": 1, "vermelho": 1}
+    assert r["emendas"] == 3 and r["status"] == {"verde": 1, "vermelho": 1, "cinza": 1}
     assert r["percentual_com_evidencia"] == 50.0 and r["ranking_indicios"][0]["codigo_ibge"] == "2401859"
     assert r["por_uf"][0]["uf"] == "RN"
     al = {a["codigo"]: a for a in cliente.get("/alertas").json()}
@@ -220,3 +235,38 @@ def test_parlamentares_por_uf_casa_partido_e_perfil(cliente) -> None:
     assert r["total"] == 1 and r["itens"][0]["uf_parlamentar"] == "PB" and r["partidos"] == ["XYZ"]
     perfil = cliente.get("/parlamentares/Fulana de Tal").json()["perfil"]
     assert perfil["casa"] == "camara" and perfil["url_pagina"].startswith("https://www.camara.leg.br")
+
+
+def test_esfera_e_mapa_dos_estados(cliente) -> None:
+    assert cliente.get("/emendas", params={"esfera": "estadual"}).json()["total"] == 1
+    assert cliente.get("/emendas", params={"esfera": "municipal"}).json()["total"] == 2
+    assert cliente.get("/emendas", params={"esfera": "federal"}).status_code == 422
+    estados = cliente.get("/mapa/estados").json()
+    assert len(estados) == 1 and estados[0]["uf"] == "RN" and estados[0]["emendas"] == 1
+    assert estados[0]["status"] == "cinza"
+
+
+def test_coleta_e_valores_por_uf(cliente) -> None:
+    fontes = {f["fonte"]: f for f in cliente.get("/coleta").json()}
+    assert set(fontes) >= {"transferegov", "portal", "pncp", "tce", "querido_diario", "congresso", "ibge"}
+    assert fontes["transferegov"]["numeros"]["planos"] == 3 and fontes["transferegov"]["numeros"]["pagamentos"] == 2
+    assert fontes["pncp"]["numeros"]["contratos"] == 1 and fontes["pncp"]["numeros"]["cnpjs_monitorados"] >= 2
+    uf = cliente.get("/resumo").json()["por_uf"][0]
+    assert uf["repassado"] == 800000 and uf["verde_valor"] == 400000 and uf["vermelho_valor"] == 400000
+
+
+def test_assistente_sem_chave_e_com_resposta(cliente, monkeypatch) -> None:
+    from rastro.api import main
+
+    monkeypatch.setattr(main, "config", lambda: type("C", (), {"anthropic_api_key": "", "modelo_analise": "m"})())
+    assert cliente.get("/assistente").json()["disponivel"] is False
+    assert cliente.post("/emendas/1/assistente", json={"pergunta": "Resuma"}).status_code == 503
+    monkeypatch.setattr(main, "config", lambda: type("C", (), {"anthropic_api_key": "k", "modelo_analise": "m"})())
+    monkeypatch.setattr(main.assistente, "responder", lambda conn, i, p, h: {"resposta": f"ok {i} {p}", "cache": False})
+    r = cliente.post(
+        "/emendas/1/assistente", json={"pergunta": "Resuma", "historico": [{"papel": "usuario", "texto": "oi"}]}
+    )
+    assert r.status_code == 200 and r.json()["resposta"] == "ok 1 Resuma"
+    assert cliente.post("/emendas/1/assistente", json={"pergunta": "x"}).status_code == 422
+    pdf = cliente.get("/emendas/1/dossie.pdf", params={"analise": "true"})
+    assert pdf.status_code == 200 and pdf.content.startswith(b"%PDF")

@@ -84,7 +84,7 @@ class Dossie(FPDF):
         self.multi_cell(0, 4, _t(texto), link=url, new_x="LMARGIN", new_y="NEXT")
 
 
-def gerar(ficha: dict[str, Any]) -> bytes:
+def gerar(ficha: dict[str, Any], analise_ia: str | None = None) -> bytes:
     pdf = Dossie(format="A4")
     pdf.set_auto_page_break(auto=True, margin=18)
     pdf.add_page()
@@ -112,6 +112,16 @@ def gerar(ficha: dict[str, Any]) -> bytes:
     pdf.campo("Valor repassado", brl(ficha.get("repassado")))
     pdf.campo("Primeiro pagamento", ficha.get("primeiro_pagamento"))
     pdf.campo("Objeto declarado", ficha.get("objeto_completo"))
+
+    if analise_ia:
+        pdf.secao("Análise assistida por IA")
+        pdf.par(analise_ia.replace("**", "").replace("#", ""), 9)
+        pdf.par(
+            "Texto gerado automaticamente pelo assistente do Rastro da Emenda a partir dos dados desta ficha; "
+            "confira os documentos oficiais.",
+            8,
+            APOIO,
+        )
 
     if ficha.get("alertas_detalhados"):
         pdf.secao("Alertas (indícios para apuração)")

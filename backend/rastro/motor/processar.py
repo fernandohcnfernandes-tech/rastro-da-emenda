@@ -23,7 +23,7 @@ from rastro.motor import ia, semaforo
 from rastro.motor.pre_filtro import Evidencia, Similaridade, selecionar_candidatos
 from rastro.motor.regras import Correspondencia, DadosEmenda
 
-VERSAO_MOTOR = "3"  # 2: similaridade palavras + caracteres; fonte TCE. 3: faixa "em revisão"
+VERSAO_MOTOR = "4"  # 2: similaridade palavras + caracteres; fonte TCE. 3: faixa "em revisão"
 
 SQL_PLANOS = """
 SELECT p.id_plano_acao, p.uf_beneficiario AS uf, p.cnpj_beneficiario, p.valor_custeio, p.valor_investimento,
@@ -59,7 +59,7 @@ def texto_da_emenda(p: Any) -> str:
     return " ".join(x.strip() for x in partes if x and x.strip())
 
 
-def _hash(p: Any, candidatos: list, tem_pncp: bool) -> str:
+def _hash(p: Any, candidatos: list, tem_pncp: Any) -> str:
     base = {
         "v": VERSAO_MOTOR,
         "ia": ia.ia_disponivel(),
@@ -81,6 +81,9 @@ def processar_uf(uf: str, somente: set[int] | None = None, forcar: bool = False)
         planos = conn.execute(text(SQL_PLANOS), params).all()
         cnpjs = sorted({c for p in planos for c in [p.cnpj_beneficiario, *(p.executores or [])] if c})
         evidencias = conn.execute(text(SQL_EVIDENCIAS), {"cnpjs": cnpjs}).all()
+        verificados = {
+            r[0] for r in conn.execute(text("SELECT cnpj FROM cobertura_pncp WHERE cnpj = ANY(:c)"), {"c": cnpjs})
+        }
         com_pncp = {
             r[0] for r in conn.execute(
                 text("SELECT cnpj FROM cobertura_pncp WHERE cnpj = ANY(:c) AND contratos_encontrados > 0"
@@ -116,7 +119,8 @@ def processar_uf(uf: str, somente: set[int] | None = None, forcar: bool = False)
         repassado = Decimal(p.repassado) if p.repassado is not None else None
         cands = selecionar_candidatos(texto, candidatas, cnpjs_plano, p.primeiro_pagamento, repassado, similaridade)
         tem_pncp = bool(cnpjs_plano & com_pncp)
-        chave = _hash(p, cands, tem_pncp)
+        pncp_verificado = bool(cnpjs_plano & verificados)
+        chave = _hash(p, cands, (tem_pncp, pncp_verificado))
         if not forcar and chave == p.hash_anterior:
             contagem["sem_mudanca"] += 1
             continue
@@ -175,6 +179,7 @@ def processar_uf(uf: str, somente: set[int] | None = None, forcar: bool = False)
                 coberto_querido_diario=bool(p.coberto_querido_diario),
                 coberto_tce=p.coberto_tce,
                 tem_registro_pncp=tem_pncp,
+                pncp_verificado=pncp_verificado,
                 objeto=texto,
                 plano_generico=generico.generico and generico.confianca >= ia.CONFIANCA_MINIMA,
                 relatorios=[tuple(r) for r in (p.relatorios or [])],

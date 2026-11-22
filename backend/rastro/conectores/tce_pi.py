@@ -23,10 +23,10 @@ def cliente() -> ClienteHttp:
     return ClienteHttp(BASE, por_minuto=30, timeout=180)
 
 
-def paginas(cli: ClienteHttp, **filtros: str) -> Iterator[list[dict[str, Any]]]:
+def paginas(cli: ClienteHttp, esfera: str = "municipal", **filtros: str) -> Iterator[list[dict[str, Any]]]:
     offset = 0
     while True:
-        params = {"esfera": "municipal", "expand": "true", "limit": TAMANHO, "offset": offset, **filtros}
+        params = {"esfera": esfera, "expand": "true", "limit": TAMANHO, "offset": offset, **filtros}
         resposta = cli.get("/muralcon/api/contratos", params=params) or {}
         itens = resposta.get("items") or next((v for v in resposta.values() if isinstance(v, list)), [])
         yield itens

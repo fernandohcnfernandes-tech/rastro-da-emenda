@@ -68,6 +68,7 @@ class DadosEmenda:
     coberto_querido_diario: bool = False
     coberto_tce: str | None = None  # sigla do Tribunal de Contas com dados abertos de contratos (ex.: TCE-RS)
     tem_registro_pncp: bool = False
+    pncp_verificado: bool = True  # False enquanto a carga do PNCP não consultou nenhum CNPJ da emenda
     objeto: str | None = None
     plano_generico: bool | None = None
     relatorios: list[tuple[str | None, str | None]] = field(default_factory=list)  # (tipo, situação)
@@ -89,7 +90,7 @@ class DadosEmenda:
         fontes = []
         if self.obrigado_pncp or self.tem_registro_pncp or not self.municipio_pequeno:
             fontes.append("PNCP")
-        if self.municipio_pequeno and self.coberto_querido_diario:
+        if self.coberto_querido_diario:
             fontes.append("Querido Diário")
         if self.coberto_tce:
             fontes.append(self.coberto_tce)
@@ -109,6 +110,7 @@ def a1_pago_sem_evidencia(d: DadosEmenda) -> bool:
     return (
         dias is not None
         and dias > d.prazo_dias
+        and d.pncp_verificado
         and bool(d.fontes_que_cobrem)
         and not d.evidencias_validas
         and not d.em_revisao

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
-import { CabecalhoPagina, ErroApi } from "@/components/ui";
+import { ColetaFontes, type FonteColeta } from "@/components/ColetaFontes";
+import { CabecalhoPagina, ErroApi, TituloCartao } from "@/components/ui";
 import { api } from "@/lib/api";
 import { CORES, ORDEM_STATUS, numero } from "@/lib/formato";
 import type { CoberturaUF } from "@/lib/tipos";
@@ -64,6 +65,16 @@ async function Tabela() {
   );
 }
 
+async function Coleta() {
+  let fontes: FonteColeta[];
+  try {
+    fontes = await api<FonteColeta[]>("/coleta");
+  } catch {
+    return <ErroApi />;
+  }
+  return <ColetaFontes fontes={fontes} />;
+}
+
 export default function PaginaCobertura() {
   return (
     <>
@@ -72,9 +83,18 @@ export default function PaginaCobertura() {
         titulo="Cobertura das fontes"
         descricao="Quanto de cada UF conseguimos verificar: PNCP para todos os entes, Tribunais de Contas onde há dados abertos de contratos e Querido Diário para municípios com até 20 mil habitantes."
       />
-      <Suspense fallback={<p className="text-sm text-apoio">Carregando…</p>}>
-        <Tabela />
-      </Suspense>
+      <section className="mb-10">
+        <TituloCartao>O que já foi coletado, por fonte</TituloCartao>
+        <Suspense fallback={<p className="text-sm text-apoio">Carregando…</p>}>
+          <Coleta />
+        </Suspense>
+      </section>
+      <section>
+        <TituloCartao>Cobertura por UF</TituloCartao>
+        <Suspense fallback={<p className="text-sm text-apoio">Carregando…</p>}>
+          <Tabela />
+        </Suspense>
+      </section>
     </>
   );
 }

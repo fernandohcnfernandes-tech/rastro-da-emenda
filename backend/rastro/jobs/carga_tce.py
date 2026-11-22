@@ -39,8 +39,15 @@ def carregar_tce_rs(desde: date, anos: list[int] | None = None, forcar_download:
         resp.raise_for_status()
         orgaos = tce_rs.ler_orgaos(resp.content.decode("utf-8-sig"))
         monitorados = {a.cnpj: a.menor_valor for a in cnpjs_monitorados(desde, ["RS"])}
-        alvo = {cd: o for cd, o in orgaos.items() if o["cnpj"] in monitorados}
-        cnpjs_auditados = sorted({o["cnpj"] for o in orgaos.values() if o["cnpj"]})
+        cnpj_estado = ente_estadual("RS")
+        alvo = {}
+        for cd, o in orgaos.items():
+            if o["cnpj"] in monitorados:
+                alvo[cd] = o
+            elif o["esfera"] == "estadual" and cnpj_estado in monitorados:
+                # Órgão estadual sem emenda própria: o contrato conta para o ente "Estado do RS".
+                alvo[cd] = {**o, "cnpj": cnpj_estado}
+        cnpjs_auditados = sorted({o["cnpj"] for o in orgaos.values() if o["cnpj"]} | {cnpj_estado} - {None})
         with transacao() as conn:
             cobertos = conn.execute(
                 text("UPDATE ente SET coberto_tce = :s WHERE uf = 'RS' AND cnpj = ANY(:c)"),
@@ -103,6 +110,13 @@ def entes_municipais(uf: str) -> dict[str, str]:
     return mapa
 
 
+def ente_estadual(uf: str) -> str | None:
+    with transacao() as conn:
+        return conn.execute(
+            text("SELECT cnpj FROM ente WHERE uf = :uf AND esfera = 'estadual' ORDER BY cnpj LIMIT 1"), {"uf": uf}
+        ).scalar()
+
+
 def _marcar_cobertura(sigla: str, uf: str, cnpjs: list[str]) -> int:
     with transacao() as conn:
         return conn.execute(
@@ -131,15 +145,20 @@ def carregar_tce_pi(desde: date, alterados_desde: date | None = None) -> dict[st
     try:
         monitorados = {a.cnpj: a.menor_valor for a in cnpjs_monitorados(desde, ["PI"])}
         por_ibge = entes_municipais("PI")
-        cobertos = _marcar_cobertura(tce_pi.SIGLA, "PI", list(por_ibge.values()))
+        cnpj_estado = ente_estadual("PI")
+        cobertos = _marcar_cobertura(tce_pi.SIGLA, "PI", list(por_ibge.values()) + [c for c in [cnpj_estado] if c])
         totais = {"entes_cobertos": cobertos, "lidos": 0, "gravados": 0}
         if alterados_desde:
-            consultas = [{"dtAlteracao": alterados_desde.isoformat()}]
+            consultas = [{"dtAlteracao": alterados_desde.isoformat(), "esfera": e} for e in ("municipal", "estadual")]
         else:
             # Janelas mensais: paginar um ano inteiro devolveu 502 (offset > 18 mil) em 22/11/2026.
             from rastro.conectores.pncp import janelas_mensais
 
-            consultas = [{"vigencia": f"{i}_{f}"} for i, f in janelas_mensais(desde, date.today())]
+            consultas = [
+                {"vigencia": f"{i}_{f}", "esfera": esfera}
+                for esfera in ("municipal", "estadual")
+                for i, f in janelas_mensais(desde, date.today())
+            ]
         totais["erros"] = 0
         lote: dict[tuple[str, str], dict[str, Any]] = {}
         for filtros in consultas:
@@ -148,9 +167,15 @@ def carregar_tce_pi(desde: date, alterados_desde: date | None = None) -> dict[st
                     for itens in tce_pi.paginas(cli, **filtros):
                         for r in itens:
                             totais["lidos"] += 1
-                            if tce_pi.eh_camara(r.get("orgao")):
+                            if tce_pi.eh_camara(r.get("orgao")) or "ASSEMBLEIA" in (r.get("orgao") or "").upper():
                                 continue
-                            ev = tce_pi.evidencia_de_contrato(r, por_ibge.get(r.get("codIbgeMun") or ""))
+                            # Contrato estadual conta para o ente "Estado do PI"; municipal, para o município (IBGE).
+                            cnpj = (
+                                cnpj_estado
+                                if filtros["esfera"] == "estadual"
+                                else por_ibge.get(r.get("codIbgeMun") or "")
+                            )
+                            ev = tce_pi.evidencia_de_contrato(r, cnpj)
                             if _relevante(ev, desde, monitorados):
                                 lote[(ev["fonte"], ev["id_externo"])] = ev
                         if len(lote) >= LOTE:
@@ -254,9 +279,12 @@ def carregar_tce_rn(desde: date) -> dict[str, Any]:
             }
         alvos = []
         for u in tce_rn.unidades(cli):
-            if not tce_rn.eh_prefeitura(u):
-                continue
             cnpj = normalizar_cnpj(u.get("cnpj"))
+            if not tce_rn.eh_prefeitura(u):
+                # Órgãos estaduais (e outros) entram quando o próprio CNPJ é beneficiário ou executor de emenda.
+                if cnpj and cnpj in monitorados and cnpj not in cnpj_para_ibge:
+                    alvos.append((u["identificadorUnidade"], cnpj, None))
+                continue
             codigo = cnpj_para_ibge.get(cnpj or "") or indice.get(ibge.chave_nome(u.get("nomeOrgao") or ""))
             cnpj_ente = por_ibge.get(codigo or "")
             if cnpj_ente and cnpj_ente in monitorados:

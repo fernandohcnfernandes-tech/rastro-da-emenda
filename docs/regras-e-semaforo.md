@@ -6,9 +6,9 @@
 |---|---|---|
 | `verde` | `#16A34A` | Ao menos um contrato (PNCP) ou extrato de contrato (Querido Diário) compatível com o objeto e com valor coerente, com confiança da IA ≥ 0,6 |
 | `amarelo` | `#EAB308` | Evidência parcial: licitação/contratação em andamento sem contrato, ou contrato compatível que cobre só parte do valor |
-| `vermelho` | `#DC2626` | Pago há mais de 180 dias e nenhuma evidência nas fontes que cobrem o ente (PNCP para entes obrigados; PNCP + Querido Diário para municípios pequenos cobertos) |
+| `vermelho` | `#DC2626` | Pago há mais de 180 dias e nenhuma evidência nas fontes que cobrem o ente (PNCP; Querido Diário para entes cobertos; Tribunal de Contas onde há dados abertos) |
 | `azul` | `#2563EB` | Município ≤ 20 mil habitantes, sem registro no PNCP e fora da cobertura do Querido Diário — **sem fonte para verificar** (neutro) |
-| `cinza` | `#94A3B8` | Dados insuficientes (sem pagamento ainda, plano de ação incompleto, CNPJ não resolvido) |
+| `cinza` | `#94A3B8` | Dados insuficientes (sem pagamento ainda, plano de ação incompleto, CNPJ não resolvido), pago há menos de 180 dias, candidato "em revisão" (confiança 0,45–0,59) ou **verificação em andamento** (PNCP ainda não consultado para os CNPJs da emenda) |
 
 Ordem de decisão: `cinza` → `verde` → `amarelo` → (`vermelho` ou `azul`, conforme cobertura de fontes) → caso contrário `cinza`.
 

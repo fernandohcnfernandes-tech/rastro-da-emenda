@@ -56,6 +56,12 @@ def classificar(d: DadosEmenda) -> tuple[str, str]:
             f"com confiança abaixo de 60% (maior: {melhor.confianca:.0%}). Não conta como evidência nem como ausência."
         )
 
+    if not d.pncp_verificado:
+        return "cinza", (
+            "Verificação em andamento: os contratos deste ente ainda não foram consultados no PNCP. "
+            "Sem conclusão até a consulta terminar."
+        )
+
     fontes = d.fontes_que_cobrem
     dias = d.dias_desde_pagamento or 0
     if not fontes:

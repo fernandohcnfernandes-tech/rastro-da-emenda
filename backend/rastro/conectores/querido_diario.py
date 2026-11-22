@@ -36,6 +36,8 @@ def cliente(cache_dir: Path | None = None) -> ClienteHttp:
         por_minuto=config().querido_diario_req_por_minuto,
         timeout=90,
         cache_dir=cache_dir,
+        tentativas=3,  # a API oscila (503); melhor pular a consulta e tentar na próxima execução
+        espera_maxima_s=20,
     )
 
 

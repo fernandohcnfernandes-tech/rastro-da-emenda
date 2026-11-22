@@ -1,9 +1,10 @@
-import { Download, ExternalLink } from "lucide-react";
+import { Download, ExternalLink, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { Abas } from "@/components/Abas";
+import { Assistente } from "@/components/Assistente";
 import { LinhaDoTempo } from "@/components/LinhaDoTempo";
 import { Aviso, BotaoLink, Cartao, ErroApi, Rotulo, Selo, TituloCartao, Vazio } from "@/components/ui";
 import { ErroApi as ErroDaApi, api } from "@/lib/api";
@@ -189,9 +190,14 @@ async function Conteudo({ params }: { params: Promise<{ id: string }> }) {
           <h2 className="text-[28px] font-semibold leading-tight tracking-tight">{f.beneficiario}</h2>
           <Selo status={f.status} grande />
         </div>
-        <BotaoLink href={`/api/emendas/${f.id_plano_acao}/dossie.pdf`} primario externo>
-          <Download className="h-4 w-4" /> Baixar dossiê (PDF)
-        </BotaoLink>
+        <div className="flex flex-wrap gap-2">
+          <BotaoLink href={`/api/emendas/${f.id_plano_acao}/dossie.pdf`} primario externo>
+            <Download className="h-4 w-4" /> Baixar dossiê (PDF)
+          </BotaoLink>
+          <BotaoLink href={`/api/emendas/${f.id_plano_acao}/dossie.pdf?analise=true`} externo>
+            <Sparkles className="h-4 w-4" /> Dossiê com análise da IA
+          </BotaoLink>
+        </div>
       </header>
       <p className="max-w-4xl text-[15px] leading-relaxed text-cinza-claro">{f.justificativa ?? "Ainda não avaliada."}</p>
       {f.alertas_detalhados.length > 0 && (
@@ -221,6 +227,7 @@ async function Conteudo({ params }: { params: Promise<{ id: string }> }) {
           { id: "evidencias", rotulo: validas ? `Evidências (${validas} válida${validas > 1 ? "s" : ""})` : "Evidências", contador: f.evidencias.length, conteudo: evidencias },
           { id: "pagamentos", rotulo: "Pagamentos", contador: f.pagamentos.length, conteudo: pagamentos },
           { id: "fontes", rotulo: "Fontes", conteudo: fontes },
+          { id: "assistente", rotulo: "Assistente IA", conteudo: <Assistente idPlano={f.id_plano_acao} /> },
         ]}
       />
     </div>

@@ -19,13 +19,21 @@ const ORDENS: [string, string][] = [
 
 async function Resultados({ searchParams }: { searchParams: Promise<Params> }) {
   const sp = await searchParams;
-  const f = { q: texto(sp.q), status: texto(sp.status), uf: texto(sp.uf), alerta: texto(sp.alerta), ordem: texto(sp.ordem) || "repassado" };
+  const f = {
+    q: texto(sp.q),
+    status: texto(sp.status),
+    uf: texto(sp.uf),
+    alerta: texto(sp.alerta),
+    esfera: texto(sp.esfera),
+    ordem: texto(sp.ordem) || "repassado",
+  };
   const pagina = Math.max(1, Number(texto(sp.pagina)) || 1);
   const params = new URLSearchParams({ pagina: String(pagina), tamanho: "25", ordem: f.ordem });
   if (f.q) params.set("busca", f.q);
   if (f.status) params.set("status", f.status);
   if (f.uf) params.set("uf", f.uf);
   if (f.alerta) params.set("alerta", f.alerta);
+  if (f.esfera) params.set("esfera", f.esfera);
   let lista: ListaEmendas;
   try {
     lista = await api<ListaEmendas>(`/emendas?${params}`);
@@ -56,8 +64,23 @@ async function Resultados({ searchParams }: { searchParams: Promise<Params> }) {
           </select>
           {f.status && <input type="hidden" name="status" value={f.status} />}
           {f.alerta && <input type="hidden" name="alerta" value={f.alerta} />}
+          {f.esfera && <input type="hidden" name="esfera" value={f.esfera} />}
           <button className="h-10 rounded-lg bg-primaria px-5 text-sm font-medium text-white shadow-primaria hover:bg-primaria-escura">Filtrar</button>
         </form>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-16 text-xs text-discreto">Esfera</span>
+          {(
+            [
+              ["", "todas"],
+              ["municipal", "municípios"],
+              ["estadual", "estados e DF"],
+            ] as [string, string][]
+          ).map(([v, r]) => (
+            <Chip key={v || "todas"} href={link({ esfera: v, pagina: "1" })} ativo={f.esfera === v}>
+              {r}
+            </Chip>
+          ))}
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="w-16 text-xs text-discreto">Status</span>
           <Chip href={link({ status: "", pagina: "1" })} ativo={!f.status}>

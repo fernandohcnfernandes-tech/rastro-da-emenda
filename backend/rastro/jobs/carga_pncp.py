@@ -239,11 +239,12 @@ def atualizar_recentes(dias: int = 14, ate: date | None = None) -> dict[str, Any
                 cnpjs_com_novidade |= {e["cnpj_orgao"] for e in evid}
         if cnpjs_com_novidade:
             with transacao() as conn:
+                # Só atualiza CNPJs que já tiveram a consulta completa: 14 dias não bastam para dizer
+                # que o ente foi verificado no PNCP (isso marcaria vermelho/azul indevidos).
                 conn.execute(
                     text(
-                        "INSERT INTO cobertura_pncp (cnpj, contratos_encontrados, contratos_gravados)"
-                        " SELECT unnest(CAST(:c AS text[])), 1, 0 ON CONFLICT (cnpj) DO UPDATE SET"
-                        " contratos_encontrados = greatest(cobertura_pncp.contratos_encontrados, 1)"
+                        "UPDATE cobertura_pncp SET contratos_encontrados = greatest(contratos_encontrados, 1),"
+                        " verificado_em = now() WHERE cnpj = ANY(:c)"
                     ),
                     {"c": sorted(cnpjs_com_novidade)},
                 )

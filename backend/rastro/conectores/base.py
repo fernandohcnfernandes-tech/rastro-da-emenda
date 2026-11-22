@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import Retrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 USER_AGENT = "RastroDaEmenda/0.1 (Hack Brasil 2026; equipe QKV)"
 
@@ -51,7 +51,11 @@ class ClienteHttp:
         timeout: float = 60.0,
         cache_dir: Path | None = None,
         cache_ttl_s: int = 7 * 24 * 3600,
+        tentativas: int = 6,
+        espera_maxima_s: int = 120,
     ) -> None:
+        self.tentativas = tentativas
+        self.espera_maxima_s = espera_maxima_s
         self.cache_dir = cache_dir
         self.cache_ttl_s = cache_ttl_s
         if cache_dir:
@@ -74,17 +78,19 @@ class ClienteHttp:
         arquivo = self._arquivo_cache(caminho, params)
         if arquivo and arquivo.exists() and time.time() - arquivo.stat().st_mtime < self.cache_ttl_s:
             return json.loads(arquivo.read_text(encoding="utf-8"))
-        dados = self._get_rede(caminho, params)
+        dados = None
+        for tentativa in Retrying(
+            retry=retry_if_exception_type(ErroTemporario),
+            wait=wait_exponential(multiplier=2, min=2, max=self.espera_maxima_s),
+            stop=stop_after_attempt(self.tentativas),
+            reraise=True,
+        ):
+            with tentativa:
+                dados = self._get_rede(caminho, params)
         if arquivo is not None:
             arquivo.write_text(json.dumps(dados, ensure_ascii=False), encoding="utf-8")
         return dados
 
-    @retry(
-        retry=retry_if_exception_type(ErroTemporario),
-        wait=wait_exponential(multiplier=2, min=2, max=120),
-        stop=stop_after_attempt(6),
-        reraise=True,
-    )
     def _get_rede(self, caminho: str, params: dict[str, Any] | None = None) -> Any:
         self.limite.aguardar()
         try:

@@ -1,4 +1,4 @@
-"""Querido Diário: cobertura (/cities) e busca de atos (/gazettes) em municípios pequenos sem PNCP."""
+"""Querido Diário: cobertura (/cities) e busca de atos (/gazettes) para entes cobertos sem evidência no PNCP."""
 
 from __future__ import annotations
 
@@ -25,7 +25,8 @@ WITH pagos AS (
     SELECT p.id_plano_acao, p.cnpj_beneficiario AS cnpj FROM plano_acao p
     UNION SELECT e.id_plano_acao, e.cnpj_executor FROM executor e
 )
-SELECT p.id_plano_acao, p.cnpj_beneficiario, en.codigo_ibge, pg.primeiro_pagamento,
+SELECT p.id_plano_acao, p.cnpj_beneficiario,
+       CASE WHEN en.uf = 'DF' THEN :ibge_brasilia ELSE en.codigo_ibge END AS codigo_ibge, pg.primeiro_pagamento,
        concat_ws(' ', p.objeto_declarado,
                  (SELECT string_agg(e.objeto, ' ') FROM executor e WHERE e.id_plano_acao = p.id_plano_acao),
                  (SELECT string_agg(m.descricao, ' ') FROM meta m WHERE m.id_plano_acao = p.id_plano_acao)
@@ -34,14 +35,16 @@ FROM plano_acao p
 JOIN pagos pg USING (id_plano_acao)
 JOIN ente en ON en.cnpj = p.cnpj_beneficiario
 WHERE p.ano_plano_acao >= :ano
-  AND en.esfera = 'municipal' AND en.populacao <= :limite AND en.coberto_querido_diario
+  AND en.coberto_querido_diario AND (en.esfera = 'municipal' OR en.uf = 'DF')
   AND (:todas OR p.uf_beneficiario = ANY(:ufs))
   AND NOT EXISTS (
       SELECT 1 FROM evidencia ev JOIN cnpjs c ON c.cnpj = ev.cnpj_orgao
       WHERE c.id_plano_acao = p.id_plano_acao AND ev.fonte <> 'querido_diario'
         AND ev.data_publicacao >= pg.primeiro_pagamento - :tolerancia)
-ORDER BY p.uf_beneficiario, p.id_plano_acao
+ORDER BY en.populacao NULLS LAST, p.id_plano_acao
 """
+
+IBGE_BRASILIA = "5300108"  # os diários do DF (DODF) estão no Querido Diário como Brasília
 
 
 def _cities(cli) -> Any:
@@ -49,26 +52,31 @@ def _cities(cli) -> Any:
     return cli.get("/cities")
 
 
-def atualizar_cobertura() -> dict[str, int]:
+def atualizar_cobertura(resposta_cities: Any | None = None) -> dict[str, int]:
+    """Atualiza a cobertura. `resposta_cities` permite usar uma resposta já obtida (ex.: API instável)."""
     cli = qd.cliente()
     try:
         with cronometro("querido_diario", "cobertura") as info:
-            cobertos = qd.territorios_cobertos(_cities(cli))
+            cobertos = qd.territorios_cobertos(resposta_cities if resposta_cities is not None else _cities(cli))
             with transacao() as conn:
                 conn.execute(
                     text("UPDATE municipio SET coberto_querido_diario = (codigo_ibge = ANY(:c))"),
                     {"c": list(cobertos)},
                 )
                 conn.execute(
-                    text("UPDATE ente SET coberto_querido_diario = coalesce(codigo_ibge = ANY(:c), false)"),
-                    {"c": list(cobertos)},
+                    text(
+                        "UPDATE ente SET coberto_querido_diario = coalesce(codigo_ibge = ANY(:c), false)"
+                        " OR (uf = 'DF' AND CAST(:b AS text) = ANY(:c))"
+                    ),
+                    {"c": list(cobertos), "b": IBGE_BRASILIA},
                 )
-                entes = conn.execute(
+                entes = conn.execute(text("SELECT count(*) FROM ente WHERE coberto_querido_diario")).scalar_one()
+                pequenos = conn.execute(
                     text("SELECT count(*) FROM ente WHERE coberto_querido_diario AND populacao <= :l"),
                     {"l": config().limite_populacao_pequeno},
                 ).scalar_one()
-            info.update(quantidade=len(cobertos), entes_pequenos_cobertos=entes)
-        return {"territorios_cobertos": len(cobertos), "entes_pequenos_cobertos": entes}
+            info.update(quantidade=len(cobertos), entes_cobertos=entes, entes_pequenos_cobertos=pequenos)
+        return {"territorios_cobertos": len(cobertos), "entes_cobertos": entes, "entes_pequenos_cobertos": pequenos}
     finally:
         cli.fechar()
 
@@ -76,7 +84,7 @@ def atualizar_cobertura() -> dict[str, int]:
 def candidatos(desde: date, ufs: list[str] | None = None) -> list[Any]:
     params = {
         "ano": desde.year,
-        "limite": config().limite_populacao_pequeno,
+        "ibge_brasilia": IBGE_BRASILIA,
         "todas": not ufs,
         "ufs": [u.upper() for u in (ufs or [])],
         "tolerancia": TOLERANCIA_DIAS,

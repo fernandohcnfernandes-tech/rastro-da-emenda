@@ -84,13 +84,16 @@ def _cache_gravar(conn, chave: str, modelo: str, resposta: dict) -> None:
 
 
 def ia_disponivel() -> bool:
-    return bool(config().anthropic_api_key)
+    """IA no motor (classificação em massa): exige a chave **e** MOTOR_USA_IA=true."""
+    return bool(config().anthropic_api_key) and config().motor_usa_ia
 
 
 def _cliente():
     import anthropic
 
-    return anthropic.Anthropic(api_key=config().anthropic_api_key, max_retries=4)
+    cfg = config()
+    cabecalhos = {"anthropic-workspace-id": cfg.anthropic_workspace_id} if cfg.anthropic_workspace_id else None
+    return anthropic.Anthropic(api_key=cfg.anthropic_api_key, max_retries=4, default_headers=cabecalhos)
 
 
 def _chamar(modelo: str, prompt: str, formato: type[BaseModel], cliente=None) -> BaseModel:
@@ -146,7 +149,7 @@ def avaliar_correspondencia(
 ) -> tuple[RespostaCorrespondencia, str]:
     """Devolve (resposta, método). Método: 'ia', 'cache' ou 'heuristica'."""
     rapido = evidencia.get("fonte") == "querido_diario"
-    modelo = config().modelo_rapido if rapido else config().modelo_analise
+    modelo = config().modelo_motor or (config().modelo_rapido if rapido else config().modelo_analise)
     entrada = {
         "objeto_emenda": (objeto_emenda or "")[:3000],
         "valor_repassado": str(repassado) if repassado is not None else None,
