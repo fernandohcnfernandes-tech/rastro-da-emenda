@@ -17,7 +17,7 @@ As emendas Pix (transferências especiais) somam bilhões por ano e caem direto 
 
 ## Links
 - Repositório: https://github.com/fernandohcnfernandes-tech/rastro-da-emenda
-- Demo: _preencher com a URL pública após o deploy_ (instruções em `README.md` → Deploy)
+- Demo: https://rastrodaemenda.com.br
 - Vídeo (até 3 min, sem login, em português): _preencher com o link_
 
 ## Roteiro do vídeo (3 minutos)
@@ -37,7 +37,7 @@ Dicas de gravação: tela em 1920×1080, zoom do navegador em 110%, escolher pre
 ## Checklist do regulamento
 - [x] Repositório público, licença MIT, todo o código escrito no evento
 - [x] Nenhum segredo no histórico (varredura em 22/11/2026)
-- [ ] Demo no ar durante a avaliação (deploy preparado, não publicado)
+- [x] Demo no ar: https://rastrodaemenda.com.br (brasil4; manter no ar durante a avaliação)
 - [ ] Vídeo gravado e link preenchido
 - [ ] Aceite do regulamento no formulário
 - [ ] Último commit até 30/11/2026, 23h59 (horário de Brasília) — depois disso, congelamento

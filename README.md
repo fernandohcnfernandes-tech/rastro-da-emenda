@@ -4,6 +4,8 @@
 
 Projeto da equipe **QKV** para o **Hack Brasil 2026** — trilha **Logística & automação**.
 
+**Demo:** https://rastrodaemenda.com.br
+
 O Rastro da Emenda integra os sistemas federais que registram as **transferências especiais ("emendas Pix")** com as fontes que mostram o que o estado ou município fez com o dinheiro. Para cada plano de ação, de **2024 até hoje** e com **atualização semanal**, o sistema:
 
 1. coleta valor, objeto, parlamentar, beneficiário, executores, pagamentos, plano de trabalho e relatórios de gestão (Transferegov e Portal da Transparência);
