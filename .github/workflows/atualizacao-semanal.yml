@@ -1,0 +1,26 @@
+name: Atualização semanal
+
+on:
+  workflow_dispatch:
+  # Ativar na etapa 9 do roteiro, quando o job estiver pronto:
+  # schedule:
+  #   - cron: "0 6 * * 1"   # segunda-feira, 03h (horário de Brasília)
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - run: python -m rastro.jobs.atualizacao_semanal
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PORTAL_TRANSPARENCIA_API_KEY: ${{ secrets.PORTAL_TRANSPARENCIA_API_KEY }}
