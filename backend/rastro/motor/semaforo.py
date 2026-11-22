@@ -49,12 +49,20 @@ def classificar(d: DadosEmenda) -> tuple[str, str]:
             "ainda sem contrato localizado."
         )
 
+    if d.em_revisao:
+        melhor = max(d.em_revisao, key=lambda c: c.confianca)
+        return "cinza", (
+            f"Em revisão: {len(d.em_revisao)} documento(s) possivelmente compatível(is) em {_fonte(melhor.fonte)}, "
+            f"com confiança abaixo de 60% (maior: {melhor.confianca:.0%}). Não conta como evidência nem como ausência."
+        )
+
     fontes = d.fontes_que_cobrem
     dias = d.dias_desde_pagamento or 0
     if not fontes:
         return "azul", (
-            "Sem fonte para verificar: município com até 20 mil habitantes, sem registros no PNCP e fora da "
-            "cobertura do Querido Diário. Isto não é indício de problema."
+            "Sem fonte para verificar: município com até 20 mil habitantes, sem registros no PNCP, fora da "
+            "cobertura do Querido Diário e sem dados abertos de contratos do Tribunal de Contas. "
+            "Isto não é indício de problema."
         )
     if dias > d.prazo_dias:
         return "vermelho", (
@@ -68,9 +76,11 @@ def classificar(d: DadosEmenda) -> tuple[str, str]:
 
 
 def _fonte(fonte: str) -> str:
-    return {"pncp_contrato": "contrato do PNCP", "pncp_contratacao": "contratação do PNCP"}.get(
-        fonte, "diário oficial (Querido Diário)"
-    )
+    return {
+        "pncp_contrato": "contrato do PNCP",
+        "pncp_contratacao": "contratação do PNCP",
+        "tce_contrato": "contrato informado ao Tribunal de Contas",
+    }.get(fonte, "diário oficial (Querido Diário)")
 
 
 def _ato(tipo: str | None) -> str:

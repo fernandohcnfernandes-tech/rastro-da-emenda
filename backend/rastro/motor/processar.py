@@ -23,11 +23,12 @@ from rastro.motor import ia, semaforo
 from rastro.motor.pre_filtro import Evidencia, Similaridade, selecionar_candidatos
 from rastro.motor.regras import Correspondencia, DadosEmenda
 
-VERSAO_MOTOR = "1"
+VERSAO_MOTOR = "3"  # 2: similaridade palavras + caracteres; fonte TCE. 3: faixa "em revisão"
 
 SQL_PLANOS = """
 SELECT p.id_plano_acao, p.uf_beneficiario AS uf, p.cnpj_beneficiario, p.valor_custeio, p.valor_investimento,
        p.objeto_declarado, en.codigo_ibge, en.esfera, en.populacao, en.obrigado_pncp, en.coberto_querido_diario,
+       en.coberto_tce,
        (SELECT min(data_pagamento) FROM pagamento g WHERE g.id_plano_acao = p.id_plano_acao) AS primeiro_pagamento,
        (SELECT sum(valor) FROM pagamento g WHERE g.id_plano_acao = p.id_plano_acao) AS repassado,
        (SELECT array_agg(DISTINCT e.cnpj_executor) FROM executor e
@@ -66,7 +67,7 @@ def _hash(p: Any, candidatos: list, tem_pncp: bool) -> str:
         "obj": texto_da_emenda(p),
         "cand": [(c.evidencia.id, str(c.evidencia.valor), c.evidencia.tipo_ato) for c in candidatos],
         "rel": p.relatorios,
-        "cob": [p.codigo_ibge, p.populacao, p.obrigado_pncp, p.coberto_querido_diario, tem_pncp],
+        "cob": [p.codigo_ibge, p.populacao, p.obrigado_pncp, p.coberto_querido_diario, p.coberto_tce, tem_pncp],
         "hoje_semana": date.today().isocalendar()[:2],  # reavalia o prazo de 180 dias ao menos 1x por semana
     }
     return hashlib.sha256(json.dumps(base, default=str, sort_keys=True).encode()).hexdigest()
@@ -145,7 +146,7 @@ def processar_uf(uf: str, somente: set[int] | None = None, forcar: bool = False)
                     Correspondencia(
                         id_evidencia=c.evidencia.id,
                         fonte=c.evidencia.fonte,
-                        tipo_ato=resposta.tipo_ato or c.evidencia.tipo_ato
+                        tipo_ato=(resposta.tipo_ato or c.evidencia.tipo_ato)
                         if c.evidencia.fonte == "querido_diario"
                         else c.evidencia.tipo_ato,
                         modalidade=c.evidencia.modalidade,
@@ -172,6 +173,7 @@ def processar_uf(uf: str, somente: set[int] | None = None, forcar: bool = False)
                 populacao=p.populacao,
                 obrigado_pncp=p.obrigado_pncp,
                 coberto_querido_diario=bool(p.coberto_querido_diario),
+                coberto_tce=p.coberto_tce,
                 tem_registro_pncp=tem_pncp,
                 objeto=texto,
                 plano_generico=generico.generico and generico.confianca >= ia.CONFIANCA_MINIMA,

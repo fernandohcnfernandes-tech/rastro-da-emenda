@@ -1,0 +1,41 @@
+{
+ "cities": [
+  {
+   "territory_id": "1100015",
+   "territory_name": "Alta Floresta D'Oeste",
+   "state_code": "RO",
+   "level": "0",
+   "availability_date": ""
+  },
+  {
+   "territory_id": "1100023",
+   "territory_name": "Ariquemes",
+   "state_code": "RO",
+   "publication_urls": [
+    "http://www.diariomunicipal.com.br/arom/pesquisar?busca_avancada%5B__paper%5D=1&busca_avancada%5BentidadeUsuaria%5D=1211"
+   ],
+   "level": "1",
+   "availability_date": ""
+  },
+  {
+   "territory_id": "2408102",
+   "territory_name": "Natal",
+   "state_code": "RN",
+   "publication_urls": [
+    "https://www.natal.rn.gov.br/dom/"
+   ],
+   "level": "3",
+   "availability_date": "2020-10-30"
+  },
+  {
+   "territory_id": "2919603",
+   "territory_name": "Macajuba",
+   "state_code": "BA",
+   "publication_urls": [
+    "https://doem.org.br/ba/macajuba/diarios"
+   ],
+   "level": "3",
+   "availability_date": "2023-10-16"
+  }
+ ]
+}

@@ -79,9 +79,20 @@ def classificar_ato(trecho: str) -> str:
     return "outro"
 
 
+NIVEL_MINIMO_PESQUISAVEL = (
+    2  # confirmado em 22/11/2026: nível 0 = sem diários; 1 = só arquivos (busca vazia); 3 = texto
+)
+
+
 def territorios_cobertos(resposta: dict[str, Any] | list) -> set[str]:
+    """Municípios cuja cobertura permite busca textual nos diários (campo `level` de /cities)."""
     cidades = resposta.get("cities", []) if isinstance(resposta, dict) else resposta
-    return {str(c["territory_id"]) for c in cidades if c.get("territory_id")}
+    cobertos = set()
+    for c in cidades:
+        nivel = str(c.get("level") or "0")
+        if c.get("territory_id") and nivel.isdigit() and int(nivel) >= NIVEL_MINIMO_PESQUISAVEL:
+            cobertos.add(str(c["territory_id"]))
+    return cobertos
 
 
 def buscar(

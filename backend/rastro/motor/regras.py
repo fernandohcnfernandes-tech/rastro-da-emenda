@@ -9,6 +9,7 @@ from decimal import Decimal
 from rastro.motor.ia import CONFIANCA_MINIMA
 
 PRAZO_PADRAO_DIAS = 180
+CONFIANCA_REVISAO = 0.45
 FAIXA_A7 = (0.5, 1.5)
 MINIMO_CAPITAL = Decimal("0.70")
 SITUACOES_RELATORIO_OK = {"DISPONIBILIZADO", "ENVIADO", "CONCLUIDO", "APROVADO", "ANALISADO"}
@@ -37,8 +38,13 @@ class Correspondencia:
         return self.compativel and self.confianca >= CONFIANCA_MINIMA
 
     @property
+    def em_revisao(self) -> bool:
+        """Possivelmente compatível, mas com confiança insuficiente: não conta como evidência nem como ausência."""
+        return self.compativel and CONFIANCA_REVISAO <= self.confianca < CONFIANCA_MINIMA
+
+    @property
     def eh_contrato(self) -> bool:
-        return self.fonte == "pncp_contrato" or (self.tipo_ato or "") in TIPOS_CONTRATO
+        return self.fonte in {"pncp_contrato", "tce_contrato"} or (self.tipo_ato or "") in TIPOS_CONTRATO
 
     @property
     def eh_contratacao_direta(self) -> bool:
@@ -60,6 +66,7 @@ class DadosEmenda:
     populacao: int | None = None
     obrigado_pncp: bool | None = None
     coberto_querido_diario: bool = False
+    coberto_tce: str | None = None  # sigla do Tribunal de Contas com dados abertos de contratos (ex.: TCE-RS)
     tem_registro_pncp: bool = False
     objeto: str | None = None
     plano_generico: bool | None = None
@@ -84,16 +91,28 @@ class DadosEmenda:
             fontes.append("PNCP")
         if self.municipio_pequeno and self.coberto_querido_diario:
             fontes.append("Querido Diário")
+        if self.coberto_tce:
+            fontes.append(self.coberto_tce)
         return fontes
 
     @property
     def evidencias_validas(self) -> list[Correspondencia]:
         return [c for c in self.correspondencias if c.conta]
 
+    @property
+    def em_revisao(self) -> list[Correspondencia]:
+        return [c for c in self.correspondencias if c.em_revisao]
+
 
 def a1_pago_sem_evidencia(d: DadosEmenda) -> bool:
     dias = d.dias_desde_pagamento
-    return dias is not None and dias > d.prazo_dias and bool(d.fontes_que_cobrem) and not d.evidencias_validas
+    return (
+        dias is not None
+        and dias > d.prazo_dias
+        and bool(d.fontes_que_cobrem)
+        and not d.evidencias_validas
+        and not d.em_revisao
+    )
 
 
 def a2_plano_generico(d: DadosEmenda) -> bool:

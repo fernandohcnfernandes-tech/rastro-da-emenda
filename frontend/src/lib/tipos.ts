@@ -124,6 +124,7 @@ export interface CoberturaUF {
   municipios_pequenos: number;
   pequenos_cobertos_querido_diario: number;
   entes_com_registro_pncp: number;
+  entes_cobertos_tce: number;
   entes_verificados_pncp: number;
   emendas: number;
   verde: number;

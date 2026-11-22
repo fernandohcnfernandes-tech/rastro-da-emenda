@@ -67,7 +67,7 @@ def _etapa(resumo: dict[str, Any], nome: str, funcao, *args, **kwargs) -> None:
 def executar(
     transferegov: bool = True, portal: bool = True, pncp: bool = True, querido_diario: bool = True
 ) -> dict[str, Any]:
-    from rastro.jobs import carga_ibge_portal, carga_pncp, carga_querido_diario, carga_transferegov
+    from rastro.jobs import carga_ibge_portal, carga_pncp, carga_querido_diario, carga_tce, carga_transferegov
     from rastro.motor import processar
 
     execucao = Execucao("atualizacao_semanal", retomar=False)
@@ -82,6 +82,7 @@ def executar(
             _etapa(resumo, "portal", carga_ibge_portal.carregar_portal, desde)
         if pncp:
             _etapa(resumo, "pncp", carga_pncp.atualizar_recentes, DIAS_JANELA)
+        _etapa(resumo, "tce_rs", carga_tce.carregar_tce_rs, desde, [date.today().year])
         if querido_diario:
             _etapa(resumo, "querido_diario_cobertura", carga_querido_diario.atualizar_cobertura)
             _etapa(resumo, "querido_diario", carga_querido_diario.buscar_evidencias, desde, None, DIAS_JANELA)

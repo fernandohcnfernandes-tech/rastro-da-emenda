@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Any
 
-import httpx
 from sqlalchemy import text
 
 from rastro.conectores import querido_diario as qd
@@ -46,12 +45,8 @@ ORDER BY p.uf_beneficiario, p.id_plano_acao
 
 
 def _cities(cli) -> Any:
-    try:
-        return cli.get("/cities", params={"levels": [1, 2, 3]})
-    except httpx.HTTPStatusError as exc:  # versões da API exigem city_name
-        if exc.response.status_code != 422:
-            raise
-        return cli.get("/cities", params={"city_name": ""})
+    """GET /cities sem parâmetros devolve os 5.570 municípios com o nível de cobertura (confirmado em 22/11/2026)."""
+    return cli.get("/cities")
 
 
 def atualizar_cobertura() -> dict[str, int]:

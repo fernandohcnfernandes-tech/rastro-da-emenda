@@ -98,7 +98,10 @@ class ClienteHttp:
         resp.raise_for_status()
         if "json" not in resp.headers.get("content-type", "json"):
             raise ErroFonte(f"resposta não JSON ({resp.headers.get('content-type')}) em {resp.url}")
-        return resp.json()
+        try:
+            return resp.json()
+        except ValueError as exc:  # 200 com corpo truncado/inválido: instabilidade da fonte, vale repetir
+            raise ErroTemporario(f"JSON inválido em {resp.url}") from exc
 
     def fechar(self) -> None:
         self.http.close()

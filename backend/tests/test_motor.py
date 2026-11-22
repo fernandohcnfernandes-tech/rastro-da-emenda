@@ -65,8 +65,13 @@ def test_amarelo_licitacao_sem_contrato() -> None:
 
 
 def test_confianca_baixa_nao_conta_como_evidencia() -> None:
-    status, alertas, _ = semaforo.avaliar(dados(correspondencias=[corr(confianca=0.59)]))
+    status, alertas, _ = semaforo.avaliar(dados(correspondencias=[corr(confianca=0.40)]))
     assert status == "vermelho" and "A1" in alertas
+
+
+def test_candidato_em_revisao_fica_cinza_e_nao_gera_a1() -> None:
+    status, alertas, just = semaforo.avaliar(dados(correspondencias=[corr(confianca=0.5)]))
+    assert status == "cinza" and "A1" not in alertas and "Em revisão" in just
 
 
 def test_vermelho_pago_ha_mais_de_180_dias_sem_evidencia() -> None:
@@ -202,6 +207,8 @@ def test_heuristica_quando_sem_chave(monkeypatch) -> None:
         "pavimentação", {"fonte": "pncp_contrato", "valor": D("400000")}, 0.5, D("400000")
     )
     assert metodo == "heuristica" and r.compativel and r.confianca >= 0.6 and "heurística" in r.justificativa
+    r_meio, _ = ia.avaliar_correspondencia("p", {"fonte": "pncp_contrato", "valor": D("400000")}, 0.25, D("400000"))
+    assert r_meio.compativel and 0.45 <= r_meio.confianca < 0.6
     r2, _ = ia.avaliar_correspondencia("x", {"fonte": "pncp_contrato", "valor": D("400000")}, 0.05, D("400000"))
     assert not r2.compativel and r2.confianca < 0.6
 
@@ -252,3 +259,15 @@ def test_genericidade_heuristica() -> None:
     assert not ia.heuristica_genericidade(
         "Construção de ponte de concreto sobre o rio Seridó na estrada vicinal"
     ).generico
+
+
+def test_similaridade_combinada_aproxima_variacoes_e_ignora_preambulo() -> None:
+    plano = "Pavimentação asfáltica em concreto betuminoso usinado à quente em via urbana"
+    contrato = (
+        "TERMO DE CONTRATO QUE ENTRE SI CELEBRAM O MUNICÍPIO DE X E A EMPRESA Y PARA execução de pavimentação com CBUQ"
+    )
+    outro = "Fornecimento de licença de uso mensal de sistema informatizado"
+    sim = Similaridade([plano, contrato, outro])
+    nota_contrato, nota_outro = sim.pontuar(plano, [contrato, outro])
+    assert nota_contrato > 0.2 > nota_outro
+    assert "celebram" not in normalizar_texto(contrato)

@@ -43,4 +43,5 @@ export const NOME_FONTE: Record<string, string> = {
   pncp_contratacao: "PNCP · contratação",
   pncp_ata: "PNCP · ata",
   querido_diario: "Querido Diário · diário oficial",
+  tce_contrato: "Tribunal de Contas · contrato",
 };

@@ -117,10 +117,10 @@ def heuristica_correspondencia(
     """Regra transparente usada sem IA: similaridade de texto + coerência de valor."""
     razao = float(valor / repassado) if valor and repassado else None
     valor_coerente = razao is None or 0.5 <= razao <= 1.5
-    confianca = min(0.95, 0.35 + similaridade * 1.2 + (0.1 if valor_coerente and razao is not None else 0.0))
     compativel = similaridade >= 0.20 and valor_coerente
-    if not compativel:
-        confianca = min(confianca, 0.55)
+    # Conferência manual (22/11/2026): entre 0,20 e 0,35 metade dos pares era falso positivo. Nessa faixa a
+    # confiança fica abaixo de 0,6 ("em revisão"); só a partir de 0,35 conta como evidência.
+    confianca = min(0.9, 0.25 + similaridade) if compativel else min(0.4, 0.2 + similaridade)
     partes = [f"similaridade textual {similaridade:.2f}"]
     if razao is not None:
         partes.append(f"valor equivale a {razao:.0%} do repassado")

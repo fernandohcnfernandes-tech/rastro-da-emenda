@@ -108,6 +108,7 @@ def ficha_emenda(conn: Connection, id_plano_acao: int) -> dict[str, Any] | None:
         f"SELECT {CAMPOS_RESUMO}, p.situacao, p.valor_custeio, p.valor_investimento,"
         " p.objeto_declarado AS objeto_completo,"
         " p.areas_politicas, p.motivo_impedimento, en.esfera, en.obrigado_pncp, en.coberto_querido_diario,"
+        " en.coberto_tce,"
         " a.justificativa, a.avaliado_em, a.detalhes, p.cnpj_beneficiario"
         f" {BASE_EMENDAS} AND p.id_plano_acao = :id",
         {**filtros(), "id": id_plano_acao},
@@ -313,6 +314,7 @@ def cobertura(conn: Connection) -> list[dict[str, Any]]:
         " count(DISTINCT en.cnpj) FILTER (WHERE en.esfera = 'municipal' AND en.populacao <= 20000"
         "   AND en.coberto_querido_diario) AS pequenos_cobertos_querido_diario,"
         " count(DISTINCT en.cnpj) FILTER (WHERE cp.contratos_encontrados > 0) AS entes_com_registro_pncp,"
+        " count(DISTINCT en.cnpj) FILTER (WHERE en.coberto_tce IS NOT NULL) AS entes_cobertos_tce,"
         " count(DISTINCT en.cnpj) FILTER (WHERE cp.cnpj IS NOT NULL) AS entes_verificados_pncp,"
         " count(DISTINCT p.id_plano_acao) AS emendas,"
         " count(DISTINCT p.id_plano_acao) FILTER (WHERE a.status = 'verde') AS verde,"

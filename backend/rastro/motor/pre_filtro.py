@@ -25,8 +25,14 @@ _STOP = set(
 )
 
 
+_PREAMBULO = re.compile(
+    r"termo de contrato que entre si celebram .{0,200}? (?:para|objetivando|visando|tendo por objeto) "
+)
+
+
 def normalizar_texto(texto: str | None) -> str:
     t = sem_acentos(texto or "").lower()
+    t = _PREAMBULO.sub(" ", re.sub(r"\s+", " ", t))  # "TERMO DE CONTRATO QUE ENTRE SI CELEBRAM O MUNICÍPIO X ... PARA"
     t = re.sub(r"[^a-z0-9 ]+", " ", t)
     return " ".join(p for p in t.split() if len(p) > 2 and p not in _STOP)
 
@@ -52,19 +58,27 @@ class Candidato:
 
 
 class Similaridade:
-    """TF-IDF (unigramas + bigramas) ajustado num corpus de referência; cosseno entre textos."""
+    """Média do cosseno TF-IDF de palavras (uni e bigramas) e de trechos de caracteres (3 a 5).
+
+    Os trechos de caracteres aproximam variações da mesma raiz ("pavimentação"/"pavimentar",
+    "iluminação"/"luminárias"), comuns entre o plano de trabalho e o objeto do contrato.
+    """
 
     def __init__(self, corpus: Iterable[str]) -> None:
-        self.vetorizador = TfidfVectorizer(ngram_range=(1, 2), min_df=1, sublinear_tf=True)
         textos = [normalizar_texto(t) for t in corpus]
         textos = [t for t in textos if t] or ["vazio"]
-        self.vetorizador.fit(textos)
+        self.palavras = TfidfVectorizer(ngram_range=(1, 2), min_df=1, sublinear_tf=True).fit(textos)
+        self.caracteres = TfidfVectorizer(analyzer="char_wb", ngram_range=(3, 5), sublinear_tf=True).fit(textos)
 
     def pontuar(self, referencia: str, textos: Sequence[str]) -> list[float]:
         if not textos:
             return []
-        matriz = self.vetorizador.transform([normalizar_texto(referencia)] + [normalizar_texto(t) for t in textos])
-        return [float(x) for x in cosine_similarity(matriz[0], matriz[1:])[0]]
+        docs = [normalizar_texto(referencia)] + [normalizar_texto(t) for t in textos]
+        notas = []
+        for vetorizador in (self.palavras, self.caracteres):
+            matriz = vetorizador.transform(docs)
+            notas.append(cosine_similarity(matriz[0], matriz[1:])[0])
+        return [float((a + b) / 2) for a, b in zip(*notas, strict=True)]
 
 
 def na_janela(ev: Evidencia, primeiro_pagamento: date | None) -> bool:

@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse
 from datetime import date
 
-FONTES = ("transferegov", "portal", "ibge", "pncp", "querido_diario")
+FONTES = ("transferegov", "portal", "ibge", "pncp", "querido_diario", "tce_rs")
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -49,6 +49,10 @@ def main(argv: list[str] | None = None) -> None:
 
         cqd.atualizar_cobertura()
         cqd.buscar_evidencias(desde, ufs=ufs)
+    elif args.fonte == "tce_rs":
+        from rastro.jobs.carga_tce import carregar_tce_rs
+
+        carregar_tce_rs(desde)
     else:
         raise SystemExit(f"fonte {args.fonte} ainda não implementada")
 

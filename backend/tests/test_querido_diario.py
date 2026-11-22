@@ -28,6 +28,15 @@ def test_classificar_ato() -> None:
     assert qd.classificar_ato("Portaria de nomeação") == "outro"
 
 
+def test_evidencias_de_diarios_resposta_real() -> None:
+    resposta = carregar_fixture("querido_diario", "gazettes.json")
+    evid = qd.evidencias_de_diarios(resposta, "1" * 14)
+    assert resposta["total_gazettes"] > 0 and evid
+    assert all(e["codigo_ibge"] == "2919603" and e["url"].startswith("https://") and e["trecho"] for e in evid)
+    assert len({e["id_externo"] for e in evid}) == len(evid)
+    assert any(e["tipo_ato"] in {"extrato_contrato", "homologacao", "aviso_licitacao", "dispensa"} for e in evid)
+
+
 def test_evidencias_de_diarios() -> None:
     evid = qd.evidencias_de_diarios(carregar_fixture("querido_diario", "gazettes_exemplo_documentado.json"), "1" * 14)
     assert len(evid) == 3
@@ -37,6 +46,6 @@ def test_evidencias_de_diarios() -> None:
     assert len({e["id_externo"] for e in evid}) == 3
 
 
-def test_territorios_cobertos() -> None:
-    cobertos = qd.territorios_cobertos(carregar_fixture("querido_diario", "cities_exemplo_documentado.json"))
-    assert cobertos == {"2401859", "1400100"}
+def test_territorios_cobertos_so_niveis_pesquisaveis() -> None:
+    cobertos = qd.territorios_cobertos(carregar_fixture("querido_diario", "cities.json"))
+    assert cobertos == {"2408102", "2919603"}  # Natal e Macajuba (nível 3); Ariquemes (1) e Alta Floresta (0) não

@@ -78,15 +78,24 @@ Estratégia:
 - `GET /cities` — lista de municípios cobertos (consultar a cada execução; a cobertura muda).
 - `GET /gazettes` — busca nos diários. Parâmetros **(confirmar)**: `territory_ids` (código IBGE), `querystring` (palavras-chave), `published_since`, `published_until` (AAAA-MM-DD), `excerpt_size`, `number_of_excerpts`, `size`, `offset`.
 
+**Confirmado em 22/11/2026:** base `https://api.queridodiario.org.br` (o domínio `.ok.org.br` antigo não responde). `GET /cities` sem parâmetros lista os 5.570 municípios com `level` (0 = sem diários, 1 = só arquivos, 3 = texto pesquisável; só ≥ 2 conta como coberto). `GET /gazettes` aceita `territory_ids`, `querystring` (sintaxe simple_query_string: `(a | b) + ("frase" | c)`), `published_since`, `size`, `excerpt_size`, `number_of_excerpts`, `sort_by=descending_date`; resposta `{total_gazettes, gazettes: [{territory_id, date, url, excerpts, edition, ...}]}`.
+
 Usar somente quando: município ≤ 20 mil habitantes **e** sem evidência no PNCP **e** coberto pelo Querido Diário. Buscar por palavras-chave do objeto da emenda combinadas com termos de ato ("extrato de contrato", "aviso de licitação", "homologação", "dispensa").
 
-## 5. IBGE
+## 5. Tribunais de Contas (dados abertos)
+
+**TCE-RS — LicitaCon** (integrado): `https://dados.tce.rs.gov.br` (CKAN, sem chave).
+- Contratos por ano: `/dados/licitacon/contrato/ano/{ano}.csv.zip` → `contrato.csv` (UTF-8 com BOM, vírgula): `CD_ORGAO`, `NM_ORGAO`, `NR_CONTRATO`, `ANO_CONTRATO`, `CD_TIPO_MODALIDADE`, `TP_DOCUMENTO` (J/F), `NR_DOCUMENTO`, `VL_CONTRATO`, `DT_ASSINATURA`, `DS_OBJETO`, `LINK_LICITACON_CIDADAO`. 2025: ~119 mil contratos, 133 MB compactado.
+- Órgãos: `/dados/auxiliar/orgaos_auditados_rs.csv` (`CD_ORGAO`, `CNPJ`, `ESFERA`, `CD_MUNICIPIO_IBGE`).
+- Demais estados: ver `docs/relatorios/tribunais-de-contas.md`.
+
+## 6. IBGE
 
 - Municípios e códigos: `https://servicodados.ibge.gov.br/api/v1/localidades/municipios`
 - População (estimativa mais recente): agregado **6579**, variável **9324** ("População residente estimada"): `/api/v3/agregados/6579/periodos/{ano}/variaveis/9324?localidades=N6[all]` (municípios) ou `N3[all]` (UFs). Confirmado em 22/11/2026; períodos sem publicação voltam vazios.
 - Uso: marcar municípios com até 20 mil habitantes e ligar CNPJ ↔ código IBGE (por nome + UF do beneficiário).
 
-## 6. Apoio (opcional)
+## 7. Apoio (opcional)
 
 - APIs de dados abertos da Câmara e do Senado: partido, UF e foto oficial do parlamentar.
 - Cadastros CEIS/CNEP (Portal da Transparência): fornecedor sancionado (regra A8, extensão).
