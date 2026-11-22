@@ -1,0 +1,15 @@
+[
+ {
+  "id_plano_trabalho": 4093,
+  "situacao_plano_trabalho": "APROVADO",
+  "ind_orcamento_proprio_plano_trabalho": "Sim",
+  "data_inicio_execucao_plano_trabalho": "2024-07-03T00:00:00",
+  "data_fim_execucao_plano_trabalho": "2026-07-03T00:00:00",
+  "prazo_execucao_meses_plano_trabalho": 24,
+  "id_plano_acao": 64698,
+  "classificacao_orcamentaria_pt": "Orgão: 02\nUnidade: 02.08                 \nFuncional: 15.122.0001    \nProjeto/Atividade: 2.028\nElemento: 3.3.90.39.12.00.00.00.0704 - Locação de Máquinas e Equipamentos\n\nOrgão: 02\nUnidade: 02.08\nFuncional: 15.122.0001\nProjeto/Atividade: 2.028\nElemento: 3.3.90.32.99.00.00.00.0500 - Outros Materiais de Distribuição Gratuita\n\nOrgão: 02\nUnidade: 02.08                 \nFuncional: 15.451.0010 \nProjeto/Atividade: 1.008\nElemento: 3.3.90.30.24.00.00.00.0704 - Materiais de Bens imóveis/instalação\n\nOrgão:02\nUnidade:02.23\nFuncional: 04.122.0001\nProjeto/Atividade: 2.004\nElemento: 3.3.90.33.06.00.00.00.0500 - Passagens e Locomoção na Supervisão de Vendas\n\nOrgão: 02\nUnidade: 02.08                 \nFuncional: 15.451.0010    \nProjeto/Atividade: 1.009\nElemento: 3.3.90.30.01.00.00.00.0704 - Combustiveis e lubrificantes Automotivo\n\nElemento: 3.3.90.39.99.99.00.00.0500 - Outros Serviços de Terceiros - Pessoa Jurídica\n\nElemento: 3.3.90.39.10.00.00.00.0500 - Locação de Imóveis\n\nElemento: 3.3.90.35.00.00.00.0500 - Serviços de Consultoria\n",
+  "ind_justificativa_prorrogacao_atraso_pt": false,
+  "ind_justificativa_prorrogacao_paralizacao_pt": false,
+  "justificativa_prorrogacao_pt": ""
+ }
+]

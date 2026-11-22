@@ -35,6 +35,10 @@ class ErroTemporario(Exception):
     """Erro que vale repetir (429, 5xx, timeout)."""
 
 
+class ErroFonte(Exception):
+    """Resposta inesperada da fonte (ex.: página HTML de bloqueio no lugar de JSON). Não repetir."""
+
+
 class ClienteHttp:
     def __init__(
         self,
@@ -67,6 +71,8 @@ class ClienteHttp:
         if resp.status_code == 204:
             return None
         resp.raise_for_status()
+        if "json" not in resp.headers.get("content-type", "json"):
+            raise ErroFonte(f"resposta não JSON ({resp.headers.get('content-type')}) em {resp.url}")
         return resp.json()
 
     def fechar(self) -> None:

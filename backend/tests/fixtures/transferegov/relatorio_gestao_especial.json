@@ -1,0 +1,14 @@
+[
+ {
+  "id_relatorio_gestao": 4541,
+  "situacao_relatorio_gestao": "EM_ELABORACAO",
+  "parecer_relatorio_gestao": "documentos de obra em anadmento ",
+  "id_plano_acao": 36104
+ },
+ {
+  "id_relatorio_gestao": 4814,
+  "situacao_relatorio_gestao": "DISPONIBILIZADO",
+  "parecer_relatorio_gestao": "Implantação de Rede de Abastecimento de Água na localidade de Capão Rico - Santa Terezinha para o atendimento de 17 famílias.",
+  "id_plano_acao": 20718
+ }
+]

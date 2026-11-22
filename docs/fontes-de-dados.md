@@ -28,6 +28,14 @@ Campos principais de `plano_acao_especial`: `id_plano_acao`, `codigo_plano_acao`
 
 Exemplo: `GET .../plano_acao_especial?ano_plano_acao=gte.2024&limit=1000&offset=0`
 
+**Confirmado em 22/11/2026 (chamadas reais, fixtures em `backend/tests/fixtures/transferegov/`):**
+- Volume: 33.709 planos de ação com `ano_plano_acao >= 2024` (cabeçalho `Prefer: count=exact` devolve `content-range`).
+- Ligações: `executor_especial.id_plano_acao`; `meta_especial` **não** tem `id_plano_acao` — liga por `id_executor`; `ordem_pagamento_ordem_bancaria_especial` **não** tem plano nem valor — liga por `id_dh` → `documento_habil_especial` (`valor_dh`, `id_empenho`) → `empenho_especial.id_plano_acao`. A data do repasse é `data_emissao_ob`.
+- `plano_trabalho_especial` traz `classificacao_orcamentaria_pt`, `situacao_plano_trabalho` e datas de execução; o objeto declarado está em `executor_especial.objeto_executor` e `meta_especial.desc_meta`.
+- `relatorio_gestao_especial` só tem situação e parecer; `relatorio_gestao_novo_especial` tem tipo (Parcial/Final), valores executado/pendente e data.
+- O Cloudflare do gestao.gov.br bloqueia requisições sem User-Agent ou com `limit` muito alto: usar o User-Agent do projeto, `limit=1000` e no máximo 60 req/min.
+- Campos bancários (banco, agência, conta) são removidos do `raw` antes de gravar.
+
 ## 2. Portal da Transparência — API de dados (CGU)
 
 - Base: `https://api.portaldatransparencia.gov.br/api-de-dados`
@@ -45,7 +53,9 @@ Filtrar pelo tipo de emenda individual de transferência especial e ligar a `pla
 
 - Base: `https://pncp.gov.br/api/consulta`
 - Swagger: `https://pncp.gov.br/api/consulta/swagger-ui/index.html`
-- Sem autenticação. Até 500 registros por página (`tamanhoPagina`). Datas no formato `AAAAMMDD`.
+- Sem autenticação. Datas no formato `AAAAMMDD`.
+- **Confirmado em 22/11/2026:** `/v1/contratos` aceita `tamanhoPagina` de 10 a 500 e período de no máximo **365 dias** (`422 Período maior que 365 dias`) → janelas anuais. `/v1/contratacoes/publicacao` aceita `tamanhoPagina` até **50**. As respostas trazem `totalRegistros`, `totalPaginas` e `paginasRestantes`. O contrato traz `numeroControlePNCP`, `numeroControlePncpCompra`, `orgaoEntidade.cnpj`, `unidadeOrgao.codigoIbge`, `objetoContrato`, `valorGlobal`, `niFornecedor`, `tipoPessoa` (PF/PJ), `dataAssinatura`, `dataPublicacaoPncp` e `emendaParlamentar` (raramente preenchido). A contratação traz `modalidadeId`/`modalidadeNome`, `objetoCompra`, `valorTotalEstimado`/`valorTotalHomologado` e `situacaoCompraNome`.
+- URLs públicas: contrato `https://pncp.gov.br/app/contratos/{cnpj}/{ano}/{sequencial}`; contratação `https://pncp.gov.br/app/editais/{cnpj}/{ano}/{sequencial}`.
 
 | Endpoint | Obrigatórios | Opcionais | Uso |
 |---|---|---|---|

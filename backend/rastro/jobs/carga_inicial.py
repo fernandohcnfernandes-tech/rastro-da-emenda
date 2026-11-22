@@ -1,0 +1,36 @@
+"""Carga inicial por fonte.
+
+Exemplos:
+    python -m rastro.jobs.carga_inicial --fonte transferegov --desde 2024-01-01
+    python -m rastro.jobs.carga_inicial --fonte transferegov --ufs RR,AP   # amostra
+"""
+
+from __future__ import annotations
+
+import argparse
+from datetime import date
+
+FONTES = ("transferegov", "portal", "ibge", "pncp", "querido_diario")
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Carga inicial do Rastro da Emenda")
+    parser.add_argument("--fonte", choices=FONTES, required=True)
+    parser.add_argument("--desde", default="2024-01-01", help="AAAA-MM-DD")
+    parser.add_argument("--ufs", default="", help="lista de UFs separadas por vírgula (amostra)")
+    parser.add_argument("--sem-retomar", action="store_true", help="ignora progresso de execução anterior")
+    args = parser.parse_args(argv)
+    desde = date.fromisoformat(args.desde)
+    ufs = [u.strip().upper() for u in args.ufs.split(",") if u.strip()] or None
+    retomar = not args.sem_retomar
+
+    if args.fonte == "transferegov":
+        from rastro.jobs.carga_transferegov import carregar
+
+        carregar(desde, ufs, retomar=retomar)
+    else:
+        raise SystemExit(f"fonte {args.fonte} ainda não implementada")
+
+
+if __name__ == "__main__":
+    main()

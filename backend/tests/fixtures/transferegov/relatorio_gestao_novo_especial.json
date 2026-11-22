@@ -1,0 +1,11 @@
+[
+ {
+  "id_relatorio_gestao_novo": 27061,
+  "data_e_hora_relatorio_gestao_novo": "2026-07-24T10:41:48.4819",
+  "tipo_relatorio_gestao_novo": "Parcial",
+  "valor_executado_relatorio_gestao_novo": 1639000.0,
+  "valor_pendente_relatorio_gestao_novo": 7361000.0,
+  "situacao_relatorio_gestao_novo": "EM_ELABORACAO",
+  "id_plano_acao": 64698
+ }
+]
