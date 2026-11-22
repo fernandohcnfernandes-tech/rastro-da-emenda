@@ -122,7 +122,10 @@ export function Assistente({
       .then((d) => setDisponivel(Boolean(d.disponivel)))
       .catch(() => setDisponivel(false));
   }, []);
-  useEffect(() => fim.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), [mensagens, enviando]);
+  // corpo entre chaves: o Chrome recente devolve uma Promise em scrollIntoView, e o React a trataria como limpeza
+  useEffect(() => {
+    fim.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [mensagens, enviando]);
 
   async function perguntar(texto: string) {
     const q = texto.trim();
