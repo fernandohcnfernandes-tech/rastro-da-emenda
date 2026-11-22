@@ -75,6 +75,14 @@ def carregar_contratos(desde: date, ate: date | None = None, ufs: list[str] | No
     tipo = "carga_inicial:pncp_contratos" + (f":{','.join(sorted(ufs))}" if ufs else "")
     execucao = Execucao(tipo)
     feitos: set[str] = set(execucao.progresso.get("feitos", []))
+    # CNPJs já consultados recentemente (por esta ou por outra execução, inclusive em outro servidor) são pulados.
+    with transacao() as conn:
+        feitos |= {
+            r[0]
+            for r in conn.execute(
+                text("SELECT cnpj FROM cobertura_pncp WHERE verificado_em > now() - interval '7 days'")
+            )
+        }
     alvos = [
         a
         for a in cnpjs_monitorados(desde, ufs)
