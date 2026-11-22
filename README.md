@@ -80,12 +80,15 @@ O repositório traz `backend/Dockerfile`, `frontend/Dockerfile` e `docker-compos
 # no servidor, na raiz do repositório
 cp .env.example .env && echo "POSTGRES_PASSWORD=<senha forte>" >> .env   # e as chaves desejadas; URL_SITE=https://seu-dominio
 docker compose -f docker-compose.prod.yml up -d --build                    # API em 127.0.0.1:8000, site em 127.0.0.1:3000
-# cargas iniciais (uma vez), dentro do contêiner da API:
-docker compose -f docker-compose.prod.yml exec api python -m rastro.jobs.carga_inicial --fonte transferegov
-docker compose -f docker-compose.prod.yml exec api python -m rastro.jobs.carga_inicial --fonte ibge
-docker compose -f docker-compose.prod.yml exec api python -m rastro.jobs.carga_inicial --fonte portal
-docker compose -f docker-compose.prod.yml exec -d api python -m rastro.jobs.carga_inicial --fonte pncp --tipo contratos
-docker compose -f docker-compose.prod.yml exec api python -m rastro.motor.processar
+# cargas (uma vez) num contêiner de job próprio — não use "exec api": um novo deploy recria a API e interrompe o job
+J="docker compose -f docker-compose.prod.yml --env-file .env run --rm atualizacao python -m"
+$J rastro.jobs.carga_inicial --fonte transferegov
+$J rastro.jobs.carga_inicial --fonte ibge
+$J rastro.jobs.carga_inicial --fonte portal
+$J rastro.jobs.carga_inicial --fonte congresso
+$J rastro.jobs.carga_inicial --fonte tce
+docker compose -f docker-compose.prod.yml --env-file .env run -d --rm atualizacao python -m rastro.jobs.carga_inicial --fonte pncp --tipo contratos
+$J rastro.motor.processar
 ```
 
 Alternativa às cargas longas: restaurar um dump do banco de desenvolvimento (`pg_dump -Fc` → `pg_restore` no contêiner `db`).
