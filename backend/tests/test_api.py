@@ -185,3 +185,19 @@ def test_status_predominante() -> None:
     assert status_predominante({"verde": 3, "azul": 1}) == "verde"
     assert status_predominante({"amarelo": 1, "verde": 1}) == "amarelo"
     assert status_predominante({}) == "cinza"
+
+
+def test_resumo_alertas_e_listas(cliente) -> None:
+    r = cliente.get("/resumo").json()
+    assert r["emendas"] == 2 and r["status"] == {"verde": 1, "vermelho": 1}
+    assert r["percentual_com_evidencia"] == 50.0 and r["ranking_indicios"][0]["codigo_ibge"] == "2401859"
+    assert r["por_uf"][0]["uf"] == "RN"
+    al = {a["codigo"]: a for a in cliente.get("/alertas").json()}
+    assert al["A1"]["emendas"] == 1 and al["A2"]["emendas"] == 0 and len(al) == 7
+    assert cliente.get("/emendas", params={"alerta": "A1"}).json()["total"] == 1
+    assert cliente.get("/emendas", params={"alerta": "A9"}).status_code == 422
+    assert cliente.get("/emendas", params={"ordem": "recentes"}).status_code == 200
+    m = cliente.get("/municipios", params={"busca": "exemplo"}).json()
+    assert m["total"] == 1 and m["itens"][0]["status"] == "vermelho"
+    p = cliente.get("/parlamentares", params={"busca": "fulana"}).json()
+    assert p["total"] == 1 and p["itens"][0]["emendas"] == 2

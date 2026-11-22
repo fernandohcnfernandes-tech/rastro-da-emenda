@@ -12,7 +12,7 @@ export async function Rodape() {
     const quando = a.ultima_avaliacao ?? a.ultimo_job?.fim;
     if (quando) texto = new Date(quando).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" });
   } catch {
-    /* API fora do ar: rodapé mostra "indisponível" */
+    /* API fora do ar */
   }
-  return <p className="whitespace-nowrap">Última atualização dos dados: {texto}</p>;
+  return <p>Dados atualizados em {texto}</p>;
 }

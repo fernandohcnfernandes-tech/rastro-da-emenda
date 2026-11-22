@@ -3,10 +3,10 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { FormAssinatura } from "@/components/FormAssinatura";
-import { ResumoStatus } from "@/components/ResumoStatus";
 import { TabelaEmendas } from "@/components/TabelaEmendas";
-import { ErroApi, api } from "@/lib/api";
-import { brl, numero } from "@/lib/formato";
+import { BarraSemaforo, CabecalhoPagina, Cartao, ErroApi, Indicador } from "@/components/ui";
+import { ErroApi as ErroDaApi, api } from "@/lib/api";
+import { brlCompacto, numero } from "@/lib/formato";
 import type { Parlamentar } from "@/lib/tipos";
 
 export const metadata = { title: "Parlamentar" };
@@ -17,43 +17,51 @@ async function Conteudo({ params }: { params: Promise<{ nome: string }> }) {
   try {
     p = await api<Parlamentar>(`/parlamentares/${encodeURIComponent(nome)}`);
   } catch (e) {
-    if (e instanceof ErroApi && (e.status === 404 || e.status === 422)) notFound();
-    return <p className="text-sm text-amber-700">API indisponível no momento.</p>;
+    if (e instanceof ErroDaApi && (e.status === 404 || e.status === 422)) notFound();
+    return <ErroApi />;
   }
   return (
-    <div className="space-y-6">
-      <header>
-        <p className="text-sm text-slate-500">Parlamentar autor de emendas Pix</p>
-        <h1 className="text-3xl font-bold">{p.nome}</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          {numero(p.total_emendas)} plano(s) de ação desde 2024 · {brl(p.valor_repassado)} repassados · UF: {p.ufs.join(", ") || "—"}
-        </p>
-        {p.outros_nomes_encontrados.length > 0 && (
-          <p className="mt-1 text-xs text-slate-500">
-            Outros nomes parecidos:{" "}
-            {p.outros_nomes_encontrados.map((n, i) => (
-              <span key={n}>
-                {i > 0 && ", "}
-                <Link className="text-[#2563EB] hover:underline" href={`/parlamentares/${encodeURIComponent(n)}`}>
-                  {n}
-                </Link>
-              </span>
-            ))}
-          </p>
-        )}
-      </header>
-      <ResumoStatus contagem={p.status} />
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <TabelaEmendas itens={p.emendas} />
-        <FormAssinatura tipo="parlamentar" chave={p.nome} rotulo={p.nome} />
+    <>
+      <CabecalhoPagina
+        rotulo="Parlamentar"
+        titulo={p.nome}
+        descricao={
+          p.outros_nomes_encontrados.length > 0 && (
+            <span className="text-sm">
+              Nomes parecidos:{" "}
+              {p.outros_nomes_encontrados.map((n, i) => (
+                <span key={n}>
+                  {i > 0 && ", "}
+                  <Link className="text-destaque hover:underline" href={`/parlamentares/${encodeURIComponent(n)}`}>
+                    {n}
+                  </Link>
+                </span>
+              ))}
+            </span>
+          )
+        }
+      />
+      <div className="space-y-6">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Indicador rotulo="Planos de ação desde 2024" valor={numero(p.total_emendas)} detalhe={`UF: ${p.ufs.join(", ") || "—"}`} />
+          <Indicador rotulo="Valor repassado" valor={brlCompacto(p.valor_repassado)} />
+          <Indicador rotulo="Indícios para apuração" valor={numero(p.status.vermelho ?? 0)} tom="#DC2626" />
+        </div>
+        <Cartao>
+          <BarraSemaforo contagem={p.status} />
+        </Cartao>
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <TabelaEmendas itens={p.emendas} />
+          <FormAssinatura tipo="parlamentar" chave={p.nome} rotulo={p.nome} />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
 export default function PaginaParlamentar({ params }: { params: Promise<{ nome: string }> }) {
   return (
-    <Suspense fallback={<p className="text-sm text-slate-500">Carregando parlamentar…</p>}>
+    <Suspense fallback={<p className="text-sm text-apoio">Carregando parlamentar…</p>}>
       <Conteudo params={params} />
     </Suspense>
   );

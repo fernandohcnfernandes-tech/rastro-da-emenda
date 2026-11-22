@@ -133,3 +133,55 @@ export interface CoberturaUF {
   azul: number;
   cinza: number;
 }
+
+export interface Contagem {
+  verde: number;
+  amarelo: number;
+  vermelho: number;
+  azul: number;
+  cinza: number;
+}
+
+export interface Resumo {
+  emendas: number;
+  valor_previsto: number;
+  valor_repassado: number;
+  entes: number;
+  parlamentares: number;
+  status: Partial<Record<Status, number>>;
+  percentual_com_evidencia: number | null;
+  ranking_indicios: { codigo_ibge: string; municipio: string; uf: string; vermelhas: number; repassado_vermelho: number }[];
+  por_uf: ({ uf: string; emendas: number } & Contagem)[];
+}
+
+export interface AlertaResumo {
+  codigo: string;
+  descricao: string;
+  emendas: number;
+  repassado: number;
+}
+
+export interface MunicipioLista extends Contagem {
+  codigo_ibge: string;
+  nome: string;
+  uf: string;
+  populacao: number | null;
+  emendas: number;
+  repassado: number;
+  status: Status;
+}
+
+export interface ParlamentarLista extends Contagem {
+  nome: string;
+  emendas: number;
+  repassado: number;
+  ufs: string[];
+  status: Status;
+}
+
+export interface Pagina<T> {
+  total: number;
+  pagina: number;
+  tamanho: number;
+  itens: T[];
+}

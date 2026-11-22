@@ -22,6 +22,7 @@ app = FastAPI(
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
 
 Status = Literal["verde", "amarelo", "vermelho", "azul", "cinza"]
+Alerta = Literal["A1", "A2", "A3", "A4", "A5", "A6", "A7"]
 
 
 def conexao():
@@ -51,11 +52,15 @@ def emendas(
     ano: int | None = None,
     status: Status | None = None,
     busca: str | None = Query(None, description="texto livre: beneficiário, município, parlamentar, objeto, número"),
+    alerta: Alerta | None = None,
+    ordem: Literal["repassado", "recentes", "antigas", "valor"] = "repassado",
     pagina: int = Query(1, ge=1),
     tamanho: int = Query(20, ge=1, le=100),
 ) -> dict:
-    filtros = dict(uf=uf, municipio=municipio, parlamentar=parlamentar, ano=ano, status=status, busca=busca)
-    resultado = consultas.listar_emendas(conn, pagina, tamanho, **filtros)
+    filtros = dict(
+        uf=uf, municipio=municipio, parlamentar=parlamentar, ano=ano, status=status, busca=busca, alerta=alerta
+    )
+    resultado = consultas.listar_emendas(conn, pagina, tamanho, ordem, **filtros)
     resultado["resumo_status"] = consultas.resumo_status(conn, **filtros)
     return resultado
 
@@ -78,6 +83,34 @@ def emenda_dossie(id_plano_acao: int, conn: Conexao) -> Response:
         media_type="application/pdf",
         headers={"Content-Disposition": f'inline; filename="dossie-emenda-{id_plano_acao}.pdf"'},
     )
+
+
+@app.get("/resumo")
+def resumo(conn: Conexao) -> dict:
+    return consultas.resumo(conn)
+
+
+@app.get("/alertas")
+def alertas(conn: Conexao) -> list:
+    return consultas.alertas(conn)
+
+
+@app.get("/municipios")
+def municipios(
+    conn: Conexao,
+    busca: str | None = None,
+    uf: str | None = Query(None, min_length=2, max_length=2),
+    pagina: int = Query(1, ge=1),
+    tamanho: int = Query(30, ge=1, le=100),
+) -> dict:
+    return consultas.listar_municipios(conn, busca, uf, pagina, tamanho)
+
+
+@app.get("/parlamentares")
+def parlamentares(
+    conn: Conexao, busca: str | None = None, pagina: int = Query(1, ge=1), tamanho: int = Query(30, ge=1, le=100)
+) -> dict:
+    return consultas.listar_parlamentares(conn, busca, pagina, tamanho)
 
 
 @app.get("/municipios/{codigo_ibge}")

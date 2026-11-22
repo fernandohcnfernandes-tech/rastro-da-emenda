@@ -1,3 +1,4 @@
+import { CabecalhoPagina } from "@/components/ui";
 import { CORES, ROTULOS } from "@/lib/formato";
 import type { Status } from "@/lib/tipos";
 
@@ -32,25 +33,25 @@ const FONTES: [string, string, string][] = [
 
 export default function ComoFunciona() {
   return (
-    <article className="max-w-3xl space-y-8 leading-relaxed">
+    <article className="max-w-4xl space-y-8 leading-relaxed text-cinza-claro">
+      <CabecalhoPagina rotulo="Sobre" titulo="Como funciona" />
       <header>
-        <h1 className="text-3xl font-bold">Como funciona</h1>
-        <p className="mt-2 text-slate-600">
+        <p className="text-apoio">
           O Rastro da Emenda acompanha as <strong>transferências especiais (“emendas Pix”)</strong> destinadas a estados e municípios de 2024
           até hoje. Para cada plano de ação, coletamos os dados federais, procuramos evidências de uso do dinheiro no ente beneficiário e
           classificamos a execução num semáforo. Os dados são atualizados toda semana.
         </p>
       </header>
 
-      <section className="rounded-lg border-l-4 border-[#DC2626] bg-red-50 p-4 text-sm">
+      <section className="rounded-xl border border-vermelho/40 bg-vermelho/10 p-4 text-sm text-vermelho-claro">
         <strong>Aviso importante:</strong> o sistema aponta <strong>indícios para apuração</strong>, nunca acusações. “Sem evidência encontrada
         nas fontes consultadas” significa apenas que nada foi localizado nas bases públicas — o recurso pode ter sido aplicado e publicado em
         outro lugar. Toda conclusão traz o link para o documento oficial que a sustenta.
       </section>
 
       <section>
-        <h2 className="text-xl font-bold">O caminho do dinheiro</h2>
-        <ol className="mt-2 list-decimal space-y-1 pl-5 text-slate-700">
+        <h2 className="mb-2 text-lg font-semibold text-texto">O caminho do dinheiro</h2>
+        <ol className="mt-2 list-decimal space-y-1 pl-5 text-cinza-claro">
           <li>Coletamos valor, parlamentar, beneficiário, executores, pagamentos e plano de trabalho (Transferegov e Portal da Transparência).</li>
           <li>Procuramos contratos e contratações do CNPJ beneficiário e dos executores no PNCP, a partir do 1º pagamento (menos 30 dias).</li>
           <li>Em municípios com até 20 mil habitantes, também buscamos extratos de contrato, avisos de licitação e dispensas no Querido Diário.</li>
@@ -62,7 +63,7 @@ export default function ComoFunciona() {
       </section>
 
       <section>
-        <h2 className="text-xl font-bold">Semáforo</h2>
+        <h2 className="mb-2 text-lg font-semibold text-texto">Semáforo</h2>
         <ul className="mt-3 space-y-3">
           {SEMAFORO.map(([s, d]) => (
             <li key={s} className="flex gap-3">
@@ -76,8 +77,8 @@ export default function ComoFunciona() {
       </section>
 
       <section>
-        <h2 className="text-xl font-bold">Alertas (indícios)</h2>
-        <ul className="mt-2 space-y-1 text-slate-700">
+        <h2 className="mb-2 text-lg font-semibold text-texto">Alertas (indícios)</h2>
+        <ul className="mt-2 space-y-1 text-cinza-claro">
           {ALERTAS.map(([c, d]) => (
             <li key={c}>
               <strong>{c}</strong> — {d}
@@ -87,23 +88,23 @@ export default function ComoFunciona() {
       </section>
 
       <section>
-        <h2 className="text-xl font-bold">Fontes de dados</h2>
-        <p className="text-sm text-slate-600">Somente APIs e bases oficiais e abertas, respeitando os limites de requisição de cada uma.</p>
+        <h2 className="mb-2 text-lg font-semibold text-texto">Fontes de dados</h2>
+        <p className="text-sm text-apoio">Somente APIs e bases oficiais e abertas, respeitando os limites de requisição de cada uma.</p>
         <ul className="mt-2 space-y-2">
           {FONTES.map(([nome, uso, url]) => (
             <li key={nome}>
-              <a href={url} target="_blank" rel="noreferrer" className="font-semibold text-[#2563EB] hover:underline">
+              <a href={url} target="_blank" rel="noreferrer" className="font-semibold text-destaque hover:underline">
                 {nome}
               </a>
-              <span className="text-slate-600"> — {uso}</span>
+              <span className="text-apoio"> — {uso}</span>
             </li>
           ))}
         </ul>
       </section>
 
       <section>
-        <h2 className="text-xl font-bold">Limitações</h2>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-slate-700">
+        <h2 className="mb-2 text-lg font-semibold text-texto">Limitações</h2>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-cinza-claro">
           <li>
             <strong>Municípios até 20 mil habitantes</strong> podem publicar contratações apenas no diário oficial até abril de 2027, sem
             obrigação de usar o PNCP. Neles a verificação depende do Querido Diário.
@@ -119,7 +120,7 @@ export default function ComoFunciona() {
         </ul>
       </section>
 
-      <p className="text-sm text-slate-500">Projeto da equipe QKV para o Hack Brasil 2026 — trilha Logística & automação. Código aberto (licença MIT).</p>
+      <p className="text-sm text-discreto">Projeto da equipe QKV para o Hack Brasil 2026 — trilha Logística & automação. Código aberto (licença MIT).</p>
     </article>
   );
 }

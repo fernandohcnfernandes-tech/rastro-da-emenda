@@ -48,6 +48,7 @@ WHERE p.ano_plano_acao >= 2024
        OR unaccent_simples(p.parlamentar_nome) ILIKE unaccent_simples(:parlamentar_like))
   AND (CAST(:ano AS integer) IS NULL OR p.emenda_ano = :ano)
   AND (CAST(:status AS text) IS NULL OR a.status::text = :status)
+  AND (CAST(:alerta AS text) IS NULL OR CAST(:alerta AS text) = ANY(a.alertas))
   AND (CAST(:busca AS text) IS NULL OR unaccent_simples(concat_ws(' ', p.nome_beneficiario, m.nome, p.parlamentar_nome,
        p.objeto_declarado, p.emenda_numero, p.codigo_plano_acao)) ILIKE unaccent_simples(:busca_like))
 """
@@ -68,8 +69,10 @@ def filtros(
     ano: int | None = None,
     status: str | None = None,
     busca: str | None = None,
+    alerta: str | None = None,
 ) -> dict[str, Any]:
     return {
+        "alerta": alerta,
         "uf": uf.upper() if uf else None,
         "municipio": municipio,
         "municipio_like": f"%{municipio}%" if municipio else None,
@@ -82,13 +85,13 @@ def filtros(
     }
 
 
-def listar_emendas(conn: Connection, pagina: int, tamanho: int, **f: Any) -> dict[str, Any]:
+def listar_emendas(conn: Connection, pagina: int, tamanho: int, ordem: str = "repassado", **f: Any) -> dict[str, Any]:
     params = {**filtros(**f), "lim": tamanho, "off": (pagina - 1) * tamanho}
     total = conn.execute(text("SELECT count(*) " + BASE_EMENDAS), params).scalar_one()
+    ordenacao = ORDENACAO_EMENDAS.get(ordem, ORDENACAO_EMENDAS["repassado"])
     itens = _linhas(
         conn,
-        f"SELECT {CAMPOS_RESUMO} {BASE_EMENDAS} ORDER BY pg.repassado DESC NULLS LAST, p.id_plano_acao"
-        " LIMIT :lim OFFSET :off",
+        f"SELECT {CAMPOS_RESUMO} {BASE_EMENDAS} ORDER BY {ordenacao}, p.id_plano_acao LIMIT :lim OFFSET :off",
         params,
     )
     return {"total": total, "pagina": pagina, "tamanho": tamanho, "itens": itens}
@@ -337,3 +340,149 @@ def ultima_atualizacao(conn: Connection) -> dict[str, Any]:
     )
     avaliacao = conn.execute(text("SELECT max(avaliado_em) FROM avaliacao")).scalar_one()
     return {"ultimo_job": linhas[0] if linhas else None, "ultima_avaliacao": limpar(avaliacao)}
+
+
+ORDENACAO_EMENDAS = {
+    "repassado": "pg.repassado DESC NULLS LAST",
+    "recentes": "pg.primeiro_pagamento DESC NULLS LAST",
+    "antigas": "pg.primeiro_pagamento ASC NULLS LAST",
+    "valor": "(coalesce(p.valor_custeio, 0) + coalesce(p.valor_investimento, 0)) DESC",
+}
+
+
+def resumo(conn: Connection) -> dict[str, Any]:
+    """Indicadores da visão geral."""
+    totais = _linhas(
+        conn,
+        "SELECT count(*) AS emendas,"
+        " sum(coalesce(p.valor_custeio, 0) + coalesce(p.valor_investimento, 0)) AS valor_previsto,"
+        " (SELECT sum(g.valor) FROM pagamento g JOIN plano_acao q USING (id_plano_acao) WHERE q.ano_plano_acao >= 2024)"
+        "   AS valor_repassado,"
+        " count(DISTINCT p.cnpj_beneficiario) AS entes, count(DISTINCT p.parlamentar_nome) AS parlamentares"
+        " FROM plano_acao p WHERE p.ano_plano_acao >= 2024",
+    )[0]
+    status = {
+        r.s: r.n
+        for r in conn.execute(
+            text(
+                "SELECT coalesce(a.status::text, 'cinza') AS s, count(*) AS n FROM plano_acao p"
+                " LEFT JOIN avaliacao a USING (id_plano_acao) WHERE p.ano_plano_acao >= 2024 GROUP BY 1"
+            )
+        )
+    }
+    ranking = _linhas(
+        conn,
+        "SELECT en.codigo_ibge, m.nome AS municipio, m.uf, count(*) AS vermelhas,"
+        " sum(coalesce(pg.v, 0)) AS repassado_vermelho"
+        " FROM avaliacao a JOIN plano_acao p USING (id_plano_acao) JOIN ente en ON en.cnpj = p.cnpj_beneficiario"
+        " JOIN municipio m ON m.codigo_ibge = en.codigo_ibge"
+        " LEFT JOIN LATERAL (SELECT sum(valor) v FROM pagamento g WHERE g.id_plano_acao = p.id_plano_acao) pg ON true"
+        " WHERE a.status = 'vermelho' AND en.esfera = 'municipal'"
+        " GROUP BY en.codigo_ibge, m.nome, m.uf ORDER BY repassado_vermelho DESC LIMIT 8",
+    )
+    por_uf = _linhas(
+        conn,
+        "SELECT p.uf_beneficiario AS uf, count(*) AS emendas,"
+        " count(*) FILTER (WHERE a.status = 'verde') AS verde,"
+        " count(*) FILTER (WHERE a.status = 'amarelo') AS amarelo,"
+        " count(*) FILTER (WHERE a.status = 'vermelho') AS vermelho,"
+        " count(*) FILTER (WHERE a.status = 'azul') AS azul,"
+        " count(*) FILTER (WHERE a.status = 'cinza' OR a.status IS NULL) AS cinza"
+        " FROM plano_acao p LEFT JOIN avaliacao a USING (id_plano_acao)"
+        " WHERE p.ano_plano_acao >= 2024 AND p.uf_beneficiario IS NOT NULL GROUP BY 1 ORDER BY 1",
+    )
+    avaliadas_com_fonte = sum(status.get(s, 0) for s in ("verde", "amarelo", "vermelho"))
+    return {
+        **totais,
+        "status": status,
+        "percentual_com_evidencia": round(
+            100 * (status.get("verde", 0) + status.get("amarelo", 0)) / avaliadas_com_fonte, 1
+        )
+        if avaliadas_com_fonte
+        else None,
+        "ranking_indicios": ranking,
+        "por_uf": por_uf,
+        "atualizacao": ultima_atualizacao(conn),
+    }
+
+
+def alertas(conn: Connection) -> list[dict[str, Any]]:
+    contagem = {
+        r.codigo: (r.n, r.v)
+        for r in conn.execute(
+            text(
+                "SELECT x.codigo, count(*) AS n, sum(coalesce(pg.v, 0)) AS v"
+                " FROM avaliacao a, unnest(a.alertas) AS x(codigo)"
+                " LEFT JOIN LATERAL (SELECT sum(valor) v FROM pagamento g WHERE g.id_plano_acao = a.id_plano_acao) pg"
+                " ON true GROUP BY x.codigo"
+            )
+        )
+    }
+    return [
+        {
+            "codigo": c,
+            "descricao": d,
+            "emendas": contagem.get(c, (0, 0))[0],
+            "repassado": limpar(contagem.get(c, (0, 0))[1]),
+        }
+        for c, d in DESCRICAO.items()
+    ]
+
+
+def listar_municipios(conn: Connection, busca: str | None, uf: str | None, pagina: int, tamanho: int) -> dict:
+    params = {
+        "busca": f"%{busca}%" if busca else None,
+        "uf": uf.upper() if uf else None,
+        "lim": tamanho,
+        "off": (pagina - 1) * tamanho,
+    }
+    base = (
+        " FROM plano_acao p JOIN ente en ON en.cnpj = p.cnpj_beneficiario"
+        " JOIN municipio m ON m.codigo_ibge = en.codigo_ibge"
+        " LEFT JOIN avaliacao a ON a.id_plano_acao = p.id_plano_acao"
+        " LEFT JOIN LATERAL (SELECT sum(valor) v FROM pagamento g WHERE g.id_plano_acao = p.id_plano_acao) pg ON true"
+        " WHERE p.ano_plano_acao >= 2024 AND en.esfera = 'municipal'"
+        " AND (CAST(:uf AS text) IS NULL OR m.uf = :uf)"
+        " AND (CAST(:busca AS text) IS NULL OR unaccent_simples(m.nome) ILIKE unaccent_simples(:busca))"
+    )
+    total = conn.execute(text("SELECT count(DISTINCT en.codigo_ibge)" + base), params).scalar_one()
+    itens = _linhas(
+        conn,
+        "SELECT en.codigo_ibge, min(m.nome) AS nome, min(m.uf) AS uf, min(m.populacao) AS populacao,"
+        " count(*) AS emendas, sum(coalesce(pg.v, 0)) AS repassado,"
+        " count(*) FILTER (WHERE a.status = 'verde') AS verde, count(*) FILTER (WHERE a.status = 'amarelo') AS amarelo,"
+        " count(*) FILTER (WHERE a.status = 'vermelho') AS vermelho, count(*) FILTER (WHERE a.status = 'azul') AS azul,"
+        " count(*) FILTER (WHERE a.status = 'cinza' OR a.status IS NULL) AS cinza"
+        + base
+        + " GROUP BY en.codigo_ibge ORDER BY repassado DESC LIMIT :lim OFFSET :off",
+        params,
+    )
+    for i in itens:
+        i["status"] = status_predominante(i)
+    return {"total": total, "pagina": pagina, "tamanho": tamanho, "itens": itens}
+
+
+def listar_parlamentares(conn: Connection, busca: str | None, pagina: int, tamanho: int) -> dict:
+    params = {"busca": f"%{busca}%" if busca else None, "lim": tamanho, "off": (pagina - 1) * tamanho}
+    base = (
+        " FROM plano_acao p LEFT JOIN avaliacao a ON a.id_plano_acao = p.id_plano_acao"
+        " LEFT JOIN LATERAL (SELECT sum(valor) v FROM pagamento g WHERE g.id_plano_acao = p.id_plano_acao) pg ON true"
+        " WHERE p.ano_plano_acao >= 2024 AND p.parlamentar_nome IS NOT NULL"
+        " AND (CAST(:busca AS text) IS NULL"
+        "      OR unaccent_simples(p.parlamentar_nome) ILIKE unaccent_simples(:busca))"
+    )
+    total = conn.execute(text("SELECT count(DISTINCT p.parlamentar_nome)" + base), params).scalar_one()
+    itens = _linhas(
+        conn,
+        "SELECT p.parlamentar_nome AS nome, count(*) AS emendas, sum(coalesce(pg.v, 0)) AS repassado,"
+        " array_agg(DISTINCT p.uf_beneficiario) AS ufs,"
+        " count(*) FILTER (WHERE a.status = 'verde') AS verde, count(*) FILTER (WHERE a.status = 'amarelo') AS amarelo,"
+        " count(*) FILTER (WHERE a.status = 'vermelho') AS vermelho, count(*) FILTER (WHERE a.status = 'azul') AS azul,"
+        " count(*) FILTER (WHERE a.status = 'cinza' OR a.status IS NULL) AS cinza"
+        + base
+        + " GROUP BY p.parlamentar_nome ORDER BY repassado DESC LIMIT :lim OFFSET :off",
+        params,
+    )
+    for i in itens:
+        i["status"] = status_predominante(i)
+    return {"total": total, "pagina": pagina, "tamanho": tamanho, "itens": itens}

@@ -1,93 +1,124 @@
+import { AlertTriangle, CheckCircle2, FileText, Landmark } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { Busca } from "@/components/Busca";
 import { MapaBrasil } from "@/components/MapaBrasil";
-import { ResumoStatus } from "@/components/ResumoStatus";
+import { BarraSemaforo, BotaoLink, Cartao, ErroApi, Indicador, Rotulo, TituloCartao } from "@/components/ui";
 import { api } from "@/lib/api";
-import { numero } from "@/lib/formato";
-import type { CoberturaUF, Status } from "@/lib/tipos";
+import { CORES, ORDEM_STATUS, brlCompacto, numero } from "@/lib/formato";
+import type { Resumo } from "@/lib/tipos";
 
-async function Panorama() {
-  let cobertura: CoberturaUF[] = [];
+async function Painel() {
+  let r: Resumo;
   try {
-    cobertura = await api<CoberturaUF[]>("/cobertura");
+    r = await api<Resumo>("/resumo");
   } catch {
-    return <p className="text-sm text-amber-700">API indisponível no momento.</p>;
+    return <ErroApi />;
   }
-  const soma = (k: keyof CoberturaUF) => cobertura.reduce((s, c) => s + Number(c[k] ?? 0), 0);
-  const contagem: Partial<Record<Status, number>> = {
-    verde: soma("verde"),
-    amarelo: soma("amarelo"),
-    vermelho: soma("vermelho"),
-    azul: soma("azul"),
-    cinza: soma("cinza"),
-  };
+  const maiorUf = Math.max(1, ...r.por_uf.map((u) => u.emendas));
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          ["Emendas Pix (planos de ação)", soma("emendas")],
-          ["Entes beneficiários", soma("entes")],
-          ["Municípios até 20 mil hab.", soma("municipios_pequenos")],
-          ["Pequenos cobertos pelo Querido Diário", soma("pequenos_cobertos_querido_diario")],
-        ].map(([rotulo, valor]) => (
-          <div key={rotulo} className="rounded-lg border border-slate-200 bg-white p-3">
-            <p className="text-2xl font-bold text-[#0B0F1A]">{numero(Number(valor))}</p>
-            <p className="text-xs text-slate-500">{rotulo}</p>
-          </div>
-        ))}
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Indicador rotulo="Emendas Pix (planos de ação)" valor={numero(r.emendas)} detalhe={`${numero(r.parlamentares)} parlamentares · ${numero(r.entes)} entes`} icone={FileText} />
+        <Indicador rotulo="Valor repassado" valor={brlCompacto(r.valor_repassado)} detalhe={`de ${brlCompacto(r.valor_previsto)} previstos`} icone={Landmark} />
+        <Indicador
+          rotulo="Com evidência de execução"
+          valor={r.percentual_com_evidencia === null ? "—" : `${r.percentual_com_evidencia.toLocaleString("pt-BR")}%`}
+          detalhe="entre as emendas com fonte verificável"
+          icone={CheckCircle2}
+          tom={CORES.verde}
+        />
+        <Indicador rotulo="Indícios para apuração" valor={numero(r.status.vermelho ?? 0)} detalhe="pagas há mais de 180 dias, sem evidência" icone={AlertTriangle} tom={CORES.vermelho} />
       </div>
-      <ResumoStatus contagem={contagem} />
+
+      <Cartao>
+        <TituloCartao>Semáforo de execução</TituloCartao>
+        <BarraSemaforo contagem={r.status} />
+      </Cartao>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <Cartao>
+          <TituloCartao extra={<BotaoLink href="/mapa">Abrir mapa</BotaoLink>}>Mapa por município</TituloCartao>
+          <MapaBrasil />
+        </Cartao>
+        <div className="space-y-6">
+          <Cartao>
+            <TituloCartao extra={<Link href="/emendas?status=vermelho" className="text-xs text-destaque hover:underline">ver todas</Link>}>
+              Mais valor com indício
+            </TituloCartao>
+            <ol className="space-y-1">
+              {r.ranking_indicios.map((m, i) => (
+                <li key={m.codigo_ibge}>
+                  <Link href={`/municipios/${m.codigo_ibge}`} className="flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-superficie-3/70">
+                    <span className="w-5 text-right text-xs tabular-nums text-discreto">{i + 1}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm text-texto">{m.municipio}</span>
+                      <span className="text-xs text-discreto">
+                        {m.uf} · {m.vermelhas} emenda(s)
+                      </span>
+                    </span>
+                    <span className="text-sm tabular-nums text-vermelho-claro">{brlCompacto(m.repassado_vermelho)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          </Cartao>
+          <Cartao>
+            <Rotulo>Aviso</Rotulo>
+            <p className="mt-2 text-sm leading-relaxed text-apoio">
+              Vermelho é indício para apuração, nunca acusação. Azul significa que não há fonte pública para verificar.
+            </p>
+            <Link href="/como-funciona" className="mt-3 inline-block text-sm text-destaque hover:underline">
+              Entenda as regras →
+            </Link>
+          </Cartao>
+        </div>
+      </div>
+
+      <Cartao>
+        <TituloCartao>Emendas por UF</TituloCartao>
+        <ul className="grid gap-x-8 gap-y-2 md:grid-cols-2">
+          {r.por_uf.map((u) => (
+            <li key={u.uf} className="flex items-center gap-3 text-sm">
+              <Link href={`/emendas?uf=${u.uf}`} className="w-7 font-medium text-cinza-claro hover:text-white">
+                {u.uf}
+              </Link>
+              <div className="flex h-2 flex-1 overflow-hidden rounded-full bg-superficie-3">
+                <div className="flex h-full" style={{ width: `${(100 * u.emendas) / maiorUf}%` }}>
+                  {ORDEM_STATUS.map((s) => (u[s] ? <div key={s} style={{ flex: u[s], background: CORES[s] }} /> : null))}
+                </div>
+              </div>
+              <span className="w-14 text-right tabular-nums text-discreto">{numero(u.emendas)}</span>
+            </li>
+          ))}
+        </ul>
+      </Cartao>
     </div>
   );
 }
 
-export default function Inicio() {
+export default function VisaoGeral() {
   return (
-    <div className="space-y-8">
-      <section className="rounded-2xl bg-[#0B0F1A] px-6 py-10 text-white sm:px-10">
-        <p className="text-sm font-semibold uppercase tracking-widest text-blue-300">Emendas Pix · 2024 até hoje</p>
-        <h1 className="mt-2 max-w-3xl text-3xl font-bold leading-tight sm:text-4xl">
+    <>
+      <section className="mb-8 overflow-hidden rounded-2xl border border-borda/70 bg-[radial-gradient(circle_at_85%_0%,rgb(58_104_255/30%),transparent_26rem),linear-gradient(140deg,#0b1424,#05070c)] px-6 py-9 sm:px-10">
+        <Rotulo>Emendas Pix · 2024 até hoje</Rotulo>
+        <h2 className="mt-3 max-w-3xl text-3xl font-semibold leading-tight tracking-tight sm:text-[40px]">
           Segue cada real da emenda parlamentar até o contrato no município — e avisa quando o rastro some.
-        </h1>
-        <p className="mt-3 max-w-2xl text-slate-300">
-          Cruzamos Transferegov, Portal da Transparência, PNCP e diários oficiais para mostrar, emenda por emenda, se há evidência de que o
-          dinheiro virou licitação e contrato.
+        </h2>
+        <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-apoio">
+          Cruzamos Transferegov, Portal da Transparência, PNCP, Tribunais de Contas e diários oficiais para mostrar, emenda por emenda, se há evidência
+          de que o dinheiro virou licitação e contrato.
         </p>
-        <div className="mt-6 max-w-3xl">
-          <Busca grande />
+        <div className="mt-6 flex flex-wrap gap-2">
+          <BotaoLink href="/emendas" primario>
+            Explorar emendas
+          </BotaoLink>
+          <BotaoLink href="/mapa">Ver o mapa</BotaoLink>
         </div>
       </section>
-
-      <section>
-        <h2 className="mb-3 text-xl font-bold">Panorama</h2>
-        <Suspense fallback={<p className="text-sm text-slate-500">Carregando números…</p>}>
-          <Panorama />
-        </Suspense>
-      </section>
-
-      <MapaBrasil />
-
-      <section className="grid gap-4 sm:grid-cols-3">
-        {[
-          ["Verde", "Contrato compatível com o objeto e o valor da emenda.", "#16A34A"],
-          ["Vermelho", "Pago há mais de 180 dias, sem evidência nas fontes que cobrem o ente. É indício, não acusação.", "#DC2626"],
-          ["Azul", "Município pequeno sem fonte pública para verificar. Neutro.", "#2563EB"],
-        ].map(([t, d, cor]) => (
-          <div key={t} className="rounded-lg border-l-4 bg-white p-4 shadow-sm" style={{ borderColor: cor }}>
-            <p className="font-bold">{t}</p>
-            <p className="text-sm text-slate-600">{d}</p>
-          </div>
-        ))}
-      </section>
-      <p className="text-sm text-slate-500">
-        Entenda as regras, as fontes e as limitações em{" "}
-        <Link href="/como-funciona" className="text-[#2563EB] hover:underline">
-          Como funciona
-        </Link>
-        .
-      </p>
-    </div>
+      <Suspense fallback={<p className="text-sm text-apoio">Carregando indicadores…</p>}>
+        <Painel />
+      </Suspense>
+    </>
   );
 }

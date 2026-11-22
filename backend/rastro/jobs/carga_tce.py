@@ -136,24 +136,32 @@ def carregar_tce_pi(desde: date, alterados_desde: date | None = None) -> dict[st
         if alterados_desde:
             consultas = [{"dtAlteracao": alterados_desde.isoformat()}]
         else:
-            consultas = [{"vigencia": f"{ano}-01-01_{ano}-12-31"} for ano in range(desde.year, date.today().year + 1)]
+            # Janelas mensais: paginar um ano inteiro devolveu 502 (offset > 18 mil) em 22/11/2026.
+            from rastro.conectores.pncp import janelas_mensais
+
+            consultas = [{"vigencia": f"{i}_{f}"} for i, f in janelas_mensais(desde, date.today())]
+        totais["erros"] = 0
         lote: dict[tuple[str, str], dict[str, Any]] = {}
         for filtros in consultas:
             with cronometro("tce_pi", "contratos", **filtros) as info:
-                for itens in tce_pi.paginas(cli, **filtros):
-                    for r in itens:
-                        totais["lidos"] += 1
-                        if tce_pi.eh_camara(r.get("orgao")):
-                            continue
-                        ev = tce_pi.evidencia_de_contrato(r, por_ibge.get(r.get("codIbgeMun") or ""))
-                        if _relevante(ev, desde, monitorados):
-                            lote[(ev["fonte"], ev["id_externo"])] = ev
-                    if len(lote) >= LOTE:
-                        totais["gravados"] += _gravar(lote)
+                try:
+                    for itens in tce_pi.paginas(cli, **filtros):
+                        for r in itens:
+                            totais["lidos"] += 1
+                            if tce_pi.eh_camara(r.get("orgao")):
+                                continue
+                            ev = tce_pi.evidencia_de_contrato(r, por_ibge.get(r.get("codIbgeMun") or ""))
+                            if _relevante(ev, desde, monitorados):
+                                lote[(ev["fonte"], ev["id_externo"])] = ev
+                        if len(lote) >= LOTE:
+                            totais["gravados"] += _gravar(lote)
+                except Exception as exc:  # uma janela com erro não interrompe as demais
+                    totais["erros"] += 1
+                    log("tce_pi", "contratos:erro", erro=repr(exc)[:300], **filtros)
                 totais["gravados"] += _gravar(lote)
                 info["quantidade"] = totais["gravados"]
             execucao.salvar(**{str(filtros): dict(totais)})
-        execucao.concluir(totais)
+        execucao.concluir(totais, status="concluido" if not totais["erros"] else "erro")
         log("tce_pi", "carga:concluida", **totais)
         return totais
     except Exception as exc:
