@@ -59,7 +59,19 @@ export interface EvidenciaFicha {
   conta_como_evidencia: boolean;
 }
 
+export interface ExecucaoContabil {
+  data_referencia: string;
+  recebido: number;
+  recebido_ate_corte: number;
+  receita_fonte_706: number;
+  empenhado: number;
+  pago: number;
+  usa_fonte: boolean;
+  fracao_empenhada: number | null;
+}
+
 export interface Ficha extends EmendaResumo {
+  detalhes: { contabil?: ExecucaoContabil | null } | null;
   situacao: string | null;
   valor_custeio: number | null;
   valor_investimento: number | null;

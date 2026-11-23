@@ -5,15 +5,19 @@
 | Status | Cor | Condição |
 |---|---|---|
 | `verde` | `#16A34A` | Ao menos um contrato (PNCP) ou extrato de contrato (Querido Diário) compatível com o objeto e com valor coerente, com confiança da IA ≥ 0,6 |
-| `amarelo` | `#EAB308` | Evidência parcial: licitação/contratação em andamento sem contrato, contrato compatível que cobre só parte do valor, ou **execução declarada**: relatório de gestão final entregue (DISPONIBILIZADO/ENVIADO_PARA_ANALISE) declarando ≥ 70% do repassado como executado, sem documento independente |
+| `amarelo` | `#EAB308` | Evidência parcial: licitação/contratação em andamento sem contrato, contrato compatível que cobre só parte do valor, ou **execução declarada** sem documento independente: relatório de gestão entregue (final ou parcial, DISPONIBILIZADO/ENVIADO_PARA_ANALISE) declarando ≥ 70% do repassado como executado, ou **execução contábil**: o ente empenhou ≥ 70% das emendas Pix recebidas há mais de 180 dias (SICONFI, fonte 706) |
 | `laranja` | `#EA580C` | **Em revisão:** há documento possivelmente compatível, com confiança da IA entre 0,45 e 0,59 — abaixo do mínimo para contar como evidência. Pede conferência humana; não é evidência nem ausência (não gera A1) |
-| `vermelho` | `#DC2626` | Pago há mais de 180 dias e nenhuma evidência nas fontes que cobrem o ente (PNCP; Querido Diário para entes cobertos; Tribunal de Contas onde há dados abertos) |
-| `azul` | `#2563EB` | Município ≤ 20 mil habitantes, sem registro no PNCP e fora da cobertura do Querido Diário — **sem fonte para verificar** (neutro) |
+| `vermelho` | `#DC2626` | **Indício para apuração:** pago há mais de 180 dias, nenhuma evidência nas fontes consultadas **e um sinal contrário à execução**: a contabilidade do ente (SICONFI) mostra menos de 30% das emendas Pix recebidas há mais de 180 dias empenhadas (A9), ou o relatório de gestão final declara menos de 70% executado (A8) |
+| `azul` | `#2563EB` | **Sem evidência localizada** (neutro): nenhum documento compatível nas fontes consultadas — ou nenhuma fonte cobre o ente — e nenhum sinal contrário à execução |
 | `cinza` | `#94A3B8` | Dados insuficientes (sem pagamento ainda, plano de ação incompleto, CNPJ não resolvido), pago há menos de 180 dias ou **verificação em andamento** (PNCP ainda não consultado para os CNPJs da emenda) |
 
-**Relatório de gestão.** É declaração do próprio ente, não documento independente: nunca leva a verde. O final entregue com ≥ 70% executado leva a amarelo quando não há contrato nem contratação compatível (o alerta A1 continua valendo); quando há contrato, só entra na justificativa. Relatórios parciais ou em elaboração não mudam o status.
+**Relatório de gestão.** É declaração do próprio ente, não documento independente: nunca leva a verde. Relatório entregue (final ou parcial) com ≥ 70% executado leva a amarelo quando não há contrato nem contratação compatível (o alerta A1 continua valendo); quando há contrato, só entra na justificativa. Relatórios em elaboração não mudam o status. O A8 olha só o relatório final.
 
-Ordem de decisão: `cinza` → `verde` → `amarelo` → `laranja` → (`vermelho` ou `azul`, conforme cobertura de fontes) → caso contrário `cinza`.
+**Contabilidade do ente (SICONFI).** A Matriz de Saldos Contábeis traz a fonte de recursos 706 (transferências especiais da União): `1706` no exercício e `2706` para recursos de anos anteriores. Somamos o empenhado de 2024 (só `1706`, para não contar recursos de 2023) até a matriz mais recente e dividimos pelas emendas Pix pagas ao ente (Transferegov) até 180 dias antes da referência. O sinal só vale quando o ente classifica as emendas Pix nessa fonte (receita na fonte 706 ≥ 50% do recebido), quando todas as matrizes desde 2024 foram entregues e para emendas pagas antes do corte. É declaração do ente e é agregada por ente (todas as emendas Pix juntas): ≥ 70% empenhado leva no máximo a amarelo; < 30% leva a vermelho (A9); entre os dois, só entra na justificativa.
+
+**Por que a ausência de documento não é vermelho.** Em 23/11/2026, nas 1.817 emendas cujo relatório final declara ≥ 70% executado, a busca automática encontrou contrato ou contratação compatível em 21,9% (IC 95%: 20–24%). A proporção de emendas sem documento (≈ 79%) era praticamente igual à esperada se todas tivessem sido executadas; a ausência de documento, sozinha, não distingue emenda executada de não executada.
+
+Ordem de decisão: `cinza` (dados) → `verde` → `amarelo` (documento parcial, execução declarada, execução contábil) → `laranja` → `cinza` (verificação em andamento; dentro do prazo) → `vermelho` (só com A9 ou A8) → `azul`.
 
 Prazo de referência: 180 dias contados da data do primeiro pagamento (configurável em `PRAZO_SEM_EVIDENCIA_DIAS`).
 
@@ -29,7 +33,8 @@ Prazo de referência: 180 dias contados da data do primeiro pagamento (configur�
 | A6 | Contratação direta (dispensa ou inexigibilidade) com o recurso | modalidade no PNCP / tipo de ato no diário |
 | A7 | Valor contratado muito acima ou abaixo do repassado | razão contrato/repasse fora de [0,5; 1,5] (configurável) |
 | A8 | Relatório de gestão final declara menos de 70% do repassado como executado | `relatorio_gestao` (formato novo: tipo, situação, valor executado) × pagamentos |
-| A9 (extensão) | Fornecedor sancionado (CEIS/CNEP) ou com CNPJ aberto há menos de 6 meses | cadastros de sanções e data de abertura |
+| A9 | Contabilidade do ente mostra menos de 30% das emendas Pix recebidas há mais de 180 dias empenhadas | MSC do SICONFI (fonte 706) × pagamentos do Transferegov |
+| A10 (extensão) | Fornecedor sancionado (CEIS/CNEP) ou com CNPJ aberto há menos de 6 meses | cadastros de sanções e data de abertura |
 
 ## Pré-filtro antes da IA
 

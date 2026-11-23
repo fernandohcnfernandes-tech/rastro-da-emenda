@@ -10,7 +10,7 @@ export const metadata = { title: "Emendas" };
 
 type Params = Record<string, string | string[] | undefined>;
 const texto = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
-const ALERTAS = ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8"];
+const ALERTAS = ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9"];
 const ORDENS: [string, string][] = [
   ["repassado", "Maior repasse"],
   ["recentes", "Pagas recentemente"],

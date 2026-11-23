@@ -2,7 +2,8 @@
 
 1. Novidades do Transferegov e do Portal da Transparência (+ ligação CNPJ → IBGE de entes novos);
 2. PNCP (varredura nacional dos últimos 14 dias + consulta completa dos CNPJs novos, nunca verificados),
-   Tribunais de Contas e Querido Diário dos últimos 14 dias para os entes monitorados;
+   Tribunais de Contas e Querido Diário dos últimos 14 dias para os entes monitorados; contabilidade dos entes no
+   SICONFI (fonte 706) quando o Tesouro publica um mês novo;
 3. reprocessamento do motor — só emendas cujo `hash_entrada` mudou;
 4. e-mail aos assinantes cujo status mudou (sem SMTP, apenas log);
 5. relatório em docs/relatorios/atualizacao-semanal-AAAA-MM-DD.md.
@@ -68,7 +69,14 @@ def _etapa(resumo: dict[str, Any], nome: str, funcao, *args, **kwargs) -> None:
 def executar(
     transferegov: bool = True, portal: bool = True, pncp: bool = True, querido_diario: bool = True
 ) -> dict[str, Any]:
-    from rastro.jobs import carga_ibge_portal, carga_pncp, carga_querido_diario, carga_tce, carga_transferegov
+    from rastro.jobs import (
+        carga_ibge_portal,
+        carga_pncp,
+        carga_querido_diario,
+        carga_siconfi,
+        carga_tce,
+        carga_transferegov,
+    )
     from rastro.motor import processar
 
     execucao = Execucao("atualizacao_semanal", retomar=False)
@@ -94,6 +102,7 @@ def executar(
         if querido_diario:
             _etapa(resumo, "querido_diario_cobertura", carga_querido_diario.atualizar_cobertura)
             _etapa(resumo, "querido_diario", carga_querido_diario.buscar_evidencias, desde, None, DIAS_JANELA)
+        _etapa(resumo, "siconfi", carga_siconfi.carregar)  # só consulta quando o Tesouro publica mês novo
         _etapa(resumo, "motor", processar.processar)
         depois = _status_atual()
         mudancas = _mudancas(antes, depois)

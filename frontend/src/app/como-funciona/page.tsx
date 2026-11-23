@@ -6,10 +6,10 @@ export const metadata = { title: "Como funciona" };
 
 const SEMAFORO: [Status, string][] = [
   ["verde", "Há contrato compatível com o objeto e o valor da emenda (no PNCP, no Tribunal de Contas ou em extrato publicado no diário oficial), com confiança de pelo menos 60% e cobrindo ao menos 70% do valor repassado."],
-  ["amarelo", "Evidência parcial: licitação ou contratação em andamento sem contrato, contratos compatíveis que cobrem menos de 70% do valor repassado, ou execução declarada pelo próprio ente no relatório de gestão final (70% ou mais do repassado) sem documento independente localizado."],
+  ["amarelo", "Evidência parcial: licitação ou contratação em andamento sem contrato, contratos compatíveis que cobrem menos de 70% do valor repassado, ou execução declarada pelo próprio ente sem documento independente localizado: relatório de gestão entregue (final ou parcial) com 70% ou mais do repassado executado, ou contabilidade enviada ao Tesouro (SICONFI) com 70% ou mais das emendas Pix do ente empenhadas."],
   ["laranja", "Em revisão: há documento possivelmente compatível com a emenda, mas com confiança entre 45% e 59%, abaixo do mínimo para contar como evidência. Pede conferência humana; não é evidência de execução nem indício de problema."],
-  ["vermelho", "Pago há mais de 180 dias e nenhuma evidência nas fontes que cobrem o ente. É um indício para apuração, nunca uma acusação."],
-  ["azul", "Ente sem nenhuma fonte pública para verificar: município com até 20 mil habitantes sem registros no PNCP, fora da cobertura do Querido Diário e sem dados abertos de contratos do Tribunal de Contas. Neutro — não é indício de problema."],
+  ["vermelho", "Indício para apuração: pago há mais de 180 dias, nenhum documento nas fontes consultadas e um sinal contrário à execução — a contabilidade do ente (SICONFI) mostra menos de 30% das emendas Pix recebidas empenhadas (A9), ou o relatório de gestão final declara menos de 70% executado (A8). Nunca uma acusação."],
+  ["azul", "Sem evidência localizada: nenhum documento compatível foi encontrado nas fontes consultadas (ou nenhuma fonte cobre o ente), mas também não há sinal contrário à execução. A ausência do documento, sozinha, não é indício de problema: medimos que, nas emendas que o próprio ente declara executadas, a busca encontra o contrato em cerca de 1 a cada 5."],
   ["cinza", "Dados insuficientes (sem pagamento, sem objeto ou sem código IBGE); pagamento recente, ainda dentro do prazo de 180 dias; ou verificação em andamento (o ente ainda não foi consultado no PNCP)."],
 ];
 
@@ -22,6 +22,7 @@ const ALERTAS: [string, string][] = [
   ["A6", "Contratação direta (dispensa ou inexigibilidade) associada ao recurso."],
   ["A7", "Valor contratado muito acima ou abaixo do repassado (fora de 50% a 150%)."],
   ["A8", "Relatório de gestão final declara menos de 70% do valor repassado como executado."],
+  ["A9", "A contabilidade do ente enviada ao Tesouro (SICONFI) mostra menos de 30% das emendas Pix recebidas há mais de 180 dias empenhadas."],
 ];
 
 const FONTES: [string, string, string][] = [
@@ -32,6 +33,7 @@ const FONTES: [string, string, string][] = [
   ["Câmara dos Deputados e Senado Federal", "Partido, UF, foto e contato institucional dos parlamentares autores.", "https://dadosabertos.camara.leg.br"],
   ["Querido Diário (Open Knowledge Brasil)", "Extratos de contrato, avisos de licitação, homologações e dispensas nos diários oficiais.", "https://queridodiario.ok.org.br"],
   ["Tribunais de Contas (RS, SP, PI e RN)", "Contratos que municípios e órgãos estaduais informam ao tribunal, em dados abertos.", "https://dados.tce.rs.gov.br"],
+  ["SICONFI — Matriz de Saldos Contábeis (Tesouro Nacional)", "Receita, empenho e pagamento com recursos de transferências especiais (fonte 706), por ente.", "https://apidatalake.tesouro.gov.br/docs/siconfi/"],
 ];
 
 export default function ComoFunciona() {
@@ -59,7 +61,8 @@ export default function ComoFunciona() {
           <li>Procuramos contratos e contratações do CNPJ beneficiário e dos executores no PNCP, a partir do 1º pagamento (menos 30 dias).</li>
           <li>Para qualquer ente coberto pelo Querido Diário sem evidência no PNCP (inclusive o DF, pelo DODF), buscamos extratos de contrato, avisos de licitação, homologações e dispensas nos diários oficiais.</li>
           <li>Em RS, SP, PI e RN, usamos também os contratos que municípios e órgãos estaduais informam ao Tribunal de Contas, em dados abertos.</li>
-          <li>Lemos o relatório de gestão que o próprio ente entrega no Transferegov. Por ser uma declaração do ente, e não um documento independente, o relatório final que declara 70% ou mais executado leva no máximo a amarelo (“execução declarada”), nunca a verde; o que declara menos de 70% gera o alerta A8. Relatórios parciais ou em elaboração não mudam o status.</li>
+          <li>Lemos o relatório de gestão que o próprio ente entrega no Transferegov. Por ser uma declaração do ente, e não um documento independente, o relatório entregue (final ou parcial) que declara 70% ou mais executado leva no máximo a amarelo (“execução declarada”), nunca a verde; o final que declara menos de 70% gera o alerta A8. Relatórios em elaboração não mudam o status.</li>
+          <li>Lemos a contabilidade que o ente envia ao Tesouro (Matriz de Saldos Contábeis do SICONFI). Desde 2023, as emendas Pix têm fonte de recursos própria (706), o que mostra quanto o ente empenhou e pagou com esse dinheiro. O dado soma todas as emendas Pix do ente: 70% ou mais empenhado leva no máximo a amarelo (“execução contábil”); menos de 30% empenhado, depois de 180 dias, é o sinal contrário que leva a vermelho (A9).</li>
           <li>Um pré-filtro (CNPJ, data, faixa de valor e semelhança de texto) seleciona até 5 candidatos por emenda. Documento que cita o número da emenda entra sempre, na frente.</li>
           <li>A IA (Claude Haiku 5.5, da Anthropic) compara cada candidato com o objeto e o valor da emenda e devolve compatibilidade, confiança, justificativa e trechos citados. Se a IA estiver indisponível, uma regra transparente de semelhança e valor faz essa etapa, e a ficha indica que a classificação foi heurística.</li>
           <li>Regras de alerta e o semáforo são calculados e geram a ficha, o dossiê em PDF e os alertas por e-mail.</li>
@@ -168,7 +171,7 @@ export default function ComoFunciona() {
           <li>
             <strong>Cobertura do Querido Diário e dos Tribunais de Contas:</strong> o Querido Diário tem busca de texto em cerca de 500
             municípios (e no DF), e só integramos os Tribunais de Contas com API pública ou dados abertos (RS, SP, PI e RN). Município pequeno
-            sem nenhuma dessas fontes e sem registros no PNCP recebe azul (sem fonte para verificar), não vermelho.
+            sem nenhuma dessas fontes e sem registros no PNCP recebe azul (sem evidência localizada), não vermelho.
           </li>
           <li>
             <strong>Estados e DF:</strong> buscamos contratos do CNPJ do governo e dos órgãos executores indicados no plano de ação. Contratos
@@ -177,6 +180,12 @@ export default function ComoFunciona() {
           <li>O recurso da emenda Pix entra no caixa do ente e não exige conta específica: a ligação com um contrato é feita por objeto, valor, data e CNPJ — por isso falamos em evidência e indício.</li>
           <li>Contratos abaixo de 10% do repasse não são considerados; emendas executadas por meio de vários contratos pequenos podem aparecer como amarelo.</li>
           <li>A verificação no PNCP é feita ente a ente, no limite de requisições do portal; enquanto um ente não é consultado, suas emendas ficam cinza (“verificação em andamento”).</li>
+          <li>
+            <strong>Sensibilidade da busca de documentos:</strong> nas 1.817 emendas cujo relatório de gestão final declara 70% ou mais executado, a busca
+            automática encontrou contrato ou contratação compatível em 22% (23/11/2026). Por isso a falta de documento, sozinha, leva a azul, e o vermelho
+            exige um sinal contrário. A contabilidade do SICONFI é agregada por ente e declarada pelo próprio ente; entes que não classificam as emendas Pix na
+            fonte 706, ou sem a matriz de algum ano, ficam sem esse sinal.
+          </li>
           <li>Dados pessoais: CPF de fornecedor pessoa física aparece mascarado e o nome é omitido.</li>
         </ul>
       </section>

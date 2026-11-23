@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from rastro.motor import ia, regras, semaforo
+from rastro.motor import contabil, ia, regras, semaforo
 from rastro.motor.pre_filtro import Evidencia, Similaridade, normalizar_texto, selecionar_candidatos
 from rastro.motor.regras import Correspondencia, DadosEmenda
 
@@ -30,6 +30,22 @@ def dados(**kw) -> DadosEmenda:
     )
     base.update(kw)
     return DadosEmenda(**base)
+
+
+def exec_contabil(empenhado: str = "350000", receita: str = "400000", recebido: str = "400000", **kw):
+    """Ente que recebeu R$ 400 mil há mais de 180 dias e declarou `empenhado` na fonte 706 (SICONFI)."""
+    ref = HOJE - timedelta(days=60)
+    base = dict(
+        data_referencia=ref,
+        receita=D(receita),
+        empenhado=D(empenhado),
+        pago=D(empenhado),
+        recebido_ate_ref=D(recebido),
+        recebido_ate_corte=D(recebido),
+        corte=ref - timedelta(days=180),
+    )
+    base.update(kw)
+    return contabil.ExecucaoContabil(**base)
 
 
 def corr(**kw) -> Correspondencia:
@@ -66,7 +82,7 @@ def test_amarelo_licitacao_sem_contrato() -> None:
 
 def test_confianca_baixa_nao_conta_como_evidencia() -> None:
     status, alertas, _ = semaforo.avaliar(dados(correspondencias=[corr(confianca=0.40)]))
-    assert status == "vermelho" and "A1" in alertas
+    assert status == "azul" and "A1" in alertas
 
 
 def test_candidato_em_revisao_fica_laranja_e_nao_gera_a1() -> None:
@@ -74,10 +90,16 @@ def test_candidato_em_revisao_fica_laranja_e_nao_gera_a1() -> None:
     assert status == "laranja" and "A1" not in alertas and "Em revisão" in just
 
 
-def test_vermelho_pago_ha_mais_de_180_dias_sem_evidencia() -> None:
+def test_sem_documento_e_sem_sinal_contrario_fica_azul() -> None:
     status, alertas, just = semaforo.avaliar(dados())
-    assert status == "vermelho" and "A1" in alertas
-    assert "Indício" in just and "sem evidência encontrada nas fontes consultadas" in just
+    assert status == "azul" and "A1" in alertas
+    assert "Sem evidência localizada" in just and "não é indício de problema" in just
+
+
+def test_vermelho_exige_sinal_contrario_contabil() -> None:
+    status, alertas, just = semaforo.avaliar(dados(contabil=exec_contabil(empenhado="100000")))
+    assert status == "vermelho" and {"A1", "A9"} <= set(alertas)
+    assert "Indício para apuração" in just and "SICONFI" in just and "25%" in just
     assert "irregular" not in just.lower() and "fraude" not in just.lower() and "desvio" not in just.lower()
 
 
@@ -88,7 +110,13 @@ def test_azul_municipio_pequeno_sem_fonte() -> None:
 
 
 def test_municipio_pequeno_coberto_pelo_qd_pode_ser_vermelho() -> None:
-    d = dados(populacao=8_000, obrigado_pncp=False, tem_registro_pncp=False, coberto_querido_diario=True)
+    d = dados(
+        populacao=8_000,
+        obrigado_pncp=False,
+        tem_registro_pncp=False,
+        coberto_querido_diario=True,
+        contabil=exec_contabil(empenhado="0"),
+    )
     assert semaforo.avaliar(d)[0] == "vermelho"
     assert d.fontes_que_cobrem == ["Querido Diário"]
 
@@ -323,15 +351,24 @@ def test_relatorio_final_sem_documento_vira_amarelo_nunca_verde() -> None:
 
 def test_relatorio_final_nao_muda_verde_por_contrato_e_entra_na_justificativa() -> None:
     status, _, just = semaforo.avaliar(dados(relatorios=[FINAL_CHEIO], correspondencias=[corr()]))
-    assert status == "verde" and "declarou no relatório de gestão final 100%" in just
+    assert status == "verde" and "declarou no relatório de gestão 100%" in just
 
 
-def test_relatorio_parcial_ou_em_elaboracao_nao_muda_status() -> None:
+def test_relatorio_parcial_entregue_conta_como_execucao_declarada() -> None:
     parcial = ("Parcial", "DISPONIBILIZADO", D("400000"), D("0"))
+    status, alertas, just = semaforo.avaliar(dados(relatorios=[parcial]))
+    assert status == "amarelo" and "Execução declarada pelo ente" in just and "A8" not in alertas
+
+
+def test_relatorio_em_elaboracao_nao_muda_status() -> None:
     rascunho = ("Final", "EM_ELABORACAO", D("400000"), D("0"))
-    for rel in (parcial, rascunho):
-        status, _, _ = semaforo.avaliar(dados(relatorios=[rel]))
-        assert status == "vermelho"
+    assert semaforo.avaliar(dados(relatorios=[rascunho]))[0] == "azul"
+
+
+def test_parcial_baixo_nao_gera_a8() -> None:
+    parcial = ("Parcial", "DISPONIBILIZADO", D("10000"), D("390000"))
+    status, alertas, _ = semaforo.avaliar(dados(relatorios=[parcial]))
+    assert status == "azul" and "A8" not in alertas
 
 
 def test_a8_relatorio_final_declara_pouco() -> None:
@@ -353,3 +390,44 @@ def test_relatorio_do_banco_vira_decimal() -> None:
     r = _relatorio(["Final", "DISPONIBILIZADO", 400009.0, 0.0])
     assert r.final and r.valor_executado == D("400009.0") and r.valor_pendente == D("0.0")
     assert _relatorio(["Parcial", "EM_ELABORACAO"]).valor_executado is None
+
+
+# ------------------------------------------------------------------- execução contábil (SICONFI, fonte 706)
+
+
+def test_execucao_contabil_alta_vira_amarelo() -> None:
+    status, alertas, just = semaforo.avaliar(dados(contabil=exec_contabil(empenhado="350000")))
+    assert status == "amarelo" and "Execução contábil declarada" in just and "88%" in just
+    assert "A9" not in alertas
+
+
+def test_execucao_contabil_intermediaria_fica_azul_com_nota() -> None:
+    status, alertas, just = semaforo.avaliar(dados(contabil=exec_contabil(empenhado="200000")))
+    assert status == "azul" and "A9" not in alertas and "50% das emendas Pix" in just
+
+
+def test_ente_que_nao_usa_a_fonte_706_nao_gera_sinal() -> None:
+    d = dados(contabil=exec_contabil(empenhado="0", receita="0"))
+    assert not d.contabil_aplicavel
+    assert semaforo.avaliar(d)[0] == "azul"
+
+
+def test_emenda_paga_depois_do_corte_nao_e_julgada_pela_contabilidade() -> None:
+    c = exec_contabil(empenhado="0")
+    d = dados(contabil=c, primeiro_pagamento=c.corte + timedelta(days=10))
+    assert not d.contabil_aplicavel and "A9" not in semaforo.avaliar(d)[1]
+
+
+def test_contrato_prevalece_sobre_contabil() -> None:
+    status, alertas, _ = semaforo.avaliar(dados(correspondencias=[corr()], contabil=exec_contabil(empenhado="0")))
+    assert status == "verde" and "A9" not in alertas
+
+
+def test_montar_exige_todos_os_anos_e_soma_pagamentos_ate_o_corte() -> None:
+    anos = [(2024, 12, False, D(100), D(50), D(300)), (2025, 12, False, D(200), D(100), D(100))]
+    pagamentos = [(date(2024, 7, 1), D(300)), (date(2025, 11, 1), D(100))]
+    c = contabil.montar(anos, pagamentos, 180)
+    assert c.data_referencia == date(2025, 12, 31) and c.empenhado == D(300) and c.receita == D(400)
+    assert c.recebido_ate_ref == D(400) and c.recebido_ate_corte == D(300) and c.fracao_empenhada == D(1)
+    faltando = [(2024, 12, True, D(0), D(0), D(0)), (2025, 12, False, D(200), D(100), D(100))]
+    assert contabil.montar(faltando, pagamentos, 180) is None

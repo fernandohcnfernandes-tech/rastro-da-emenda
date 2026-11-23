@@ -25,7 +25,7 @@ export const ROTULOS: Record<Status, string> = {
   amarelo: "Evidência parcial",
   laranja: "Em revisão",
   vermelho: "Indício para apuração",
-  azul: "Sem fonte para verificar",
+  azul: "Sem evidência localizada",
   cinza: "Dados insuficientes ou em andamento",
 };
 

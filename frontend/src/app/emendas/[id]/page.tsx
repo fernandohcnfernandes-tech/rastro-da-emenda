@@ -45,6 +45,7 @@ async function Conteudo({ params }: { params: Promise<{ id: string }> }) {
     return <ErroApi />;
   }
   const validas = f.evidencias.filter((e) => e.conta_como_evidencia).length;
+  const contabil = f.detalhes?.contabil ?? null;
 
   const resumo = (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -171,6 +172,42 @@ async function Conteudo({ params }: { params: Promise<{ id: string }> }) {
           ))}
           {f.relatorios_gestao.length === 0 && <li className="py-2 text-apoio">Nenhum relatório de gestão registrado.</li>}
         </ul>
+      </Cartao>
+      <Cartao>
+        <TituloCartao>Contabilidade do ente (SICONFI)</TituloCartao>
+        <p className="mb-2 text-xs text-discreto">
+          Quanto o ente empenhou e pagou com recursos de emendas Pix (fonte 706), segundo a contabilidade que envia ao Tesouro. Soma todas as
+          emendas Pix do ente, não só esta, e é declarada pelo próprio ente.
+        </p>
+        {contabil ? (
+          <ul className="divide-y divide-borda/50 text-sm">
+            <li className="flex justify-between py-2">
+              <span className="text-apoio">Recebido em emendas Pix até {data(contabil.data_referencia)}</span>
+              <span className="tabular-nums">{brl(contabil.recebido)}</span>
+            </li>
+            <li className="flex justify-between py-2">
+              <span className="text-apoio">Empenhado (fonte 706)</span>
+              <span className="tabular-nums">{brl(contabil.empenhado)}</span>
+            </li>
+            <li className="flex justify-between py-2">
+              <span className="text-apoio">Pago (fonte 706)</span>
+              <span className="tabular-nums">{brl(contabil.pago)}</span>
+            </li>
+            <li className="flex justify-between py-2">
+              <span className="text-apoio">Empenhado ÷ recebido há mais de 180 dias</span>
+              <span className="tabular-nums">
+                {contabil.usa_fonte && contabil.fracao_empenhada !== null ? `${Math.round(contabil.fracao_empenhada * 100)}%` : "—"}
+              </span>
+            </li>
+            {!contabil.usa_fonte && (
+              <li className="py-2 text-xs text-discreto">
+                O ente não registra as emendas Pix na fonte 706 (receita abaixo de metade do recebido); o dado não é usado no semáforo.
+              </li>
+            )}
+          </ul>
+        ) : (
+          <p className="text-sm text-apoio">Matriz contábil indisponível para este ente (não entregue ao Tesouro em algum ano desde 2024).</p>
+        )}
       </Cartao>
     </div>
   );

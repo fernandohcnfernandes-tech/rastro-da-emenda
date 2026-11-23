@@ -1,4 +1,4 @@
-"""Regras de alerta A1–A8 (indícios para apuração). Funções puras sobre `DadosEmenda`."""
+"""Regras de alerta A1–A9 (indícios para apuração). Funções puras sobre `DadosEmenda`."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 
+from rastro.motor.contabil import ExecucaoContabil
 from rastro.motor.ia import CONFIANCA_MINIMA
 
 PRAZO_PADRAO_DIAS = 180
@@ -13,7 +14,9 @@ CONFIANCA_REVISAO = 0.45
 FAIXA_A7 = (0.5, 1.5)
 MINIMO_CAPITAL = Decimal("0.70")
 SITUACOES_RELATORIO_OK = {"DISPONIBILIZADO", "ENVIADO", "ENVIADO_PARA_ANALISE", "CONCLUIDO", "APROVADO", "ANALISADO"}
-EXECUCAO_DECLARADA_MINIMA = Decimal("0.70")  # relatório final que declara ≥ 70% do repassado como executado
+EXECUCAO_DECLARADA_MINIMA = Decimal("0.70")  # relatório entregue que declara ≥ 70% do repassado como executado
+EXECUCAO_CONTABIL_MINIMA = Decimal("0.70")  # ente empenhou ≥ 70% das emendas Pix recebidas há mais de 180 dias
+SEM_EMPENHO_MAXIMO = Decimal("0.30")  # ente empenhou < 30%: recursos parados sem empenho (A9)
 TIPOS_CONTRATO = {"contrato", "extrato_contrato"}
 TIPOS_DIRETOS = {"dispensa", "inexigibilidade"}
 
@@ -92,28 +95,66 @@ class DadosEmenda:
     plano_generico: bool | None = None
     relatorios: list[Relatorio] = field(default_factory=list)  # aceita também tuplas (tipo, situação, ...)
     correspondencias: list[Correspondencia] = field(default_factory=list)
+    contabil: ExecucaoContabil | None = None  # MSC do SICONFI (fonte 706), agregada por ente
     prazo_dias: int = PRAZO_PADRAO_DIAS
     limite_populacao: int = 20_000
 
     def __post_init__(self) -> None:
         self.relatorios = [r if isinstance(r, Relatorio) else Relatorio(*r) for r in self.relatorios]
 
+    def _maior_executado(self, somente_final: bool) -> Decimal | None:
+        valores = [
+            r.valor_executado
+            for r in self.relatorios
+            if r.entregue and (r.final or not somente_final) and r.valor_executado is not None
+        ]
+        return max(valores) if valores else None
+
+    def _fracao(self, valor: Decimal | None) -> Decimal | None:
+        if valor is None or not self.valor_repassado:
+            return None
+        return valor / self.valor_repassado
+
     @property
     def execucao_declarada(self) -> Decimal | None:
-        """Maior valor executado declarado num relatório de gestão final entregue (None se não houver)."""
-        valores = [r.valor_executado for r in self.relatorios if r.final and r.valor_executado is not None]
-        return max(valores) if valores else None
+        """Maior valor executado declarado num relatório de gestão entregue, final ou parcial (None se não houver)."""
+        return self._maior_executado(somente_final=False)
 
     @property
     def fracao_declarada(self) -> Decimal | None:
-        if self.execucao_declarada is None or not self.valor_repassado:
-            return None
-        return self.execucao_declarada / self.valor_repassado
+        return self._fracao(self.execucao_declarada)
 
     @property
-    def execucao_final_declarada(self) -> bool:
-        """Relatório final entregue declarando ≥ 70% do repassado como executado."""
+    def fracao_final_declarada(self) -> Decimal | None:
+        """Fração declarada no relatório de gestão final entregue (base do alerta A8)."""
+        return self._fracao(self._maior_executado(somente_final=True))
+
+    @property
+    def execucao_declarada_suficiente(self) -> bool:
+        """Relatório entregue (final ou parcial) declarando ≥ 70% do repassado como executado."""
         return self.fracao_declarada is not None and self.fracao_declarada >= EXECUCAO_DECLARADA_MINIMA
+
+    @property
+    def contabil_aplicavel(self) -> bool:
+        """A matriz contábil do ente só julga emendas pagas há mais de 180 dias antes da referência."""
+        c = self.contabil
+        return bool(
+            c
+            and c.usa_fonte
+            and c.fracao_empenhada is not None
+            and self.primeiro_pagamento is not None
+            and self.primeiro_pagamento <= c.corte
+        )
+
+    @property
+    def execucao_contabil(self) -> bool:
+        """O ente empenhou ≥ 70% das emendas Pix recebidas há mais de 180 dias (declaração contábil agregada)."""
+        return self.contabil_aplicavel and self.contabil.fracao_empenhada >= EXECUCAO_CONTABIL_MINIMA
+
+    @property
+    def recursos_sem_empenho(self) -> bool:
+        """O ente empenhou < 30% das emendas Pix recebidas há mais de 180 dias."""
+        return self.contabil_aplicavel and self.contabil.fracao_empenhada < SEM_EMPENHO_MAXIMO
 
     @property
     def dias_desde_pagamento(self) -> int | None:
@@ -197,7 +238,12 @@ def a7_valor_desproporcional(d: DadosEmenda, faixa: tuple[float, float] = FAIXA_
 
 def a8_execucao_declarada_baixa(d: DadosEmenda) -> bool:
     """Relatório final entregue declara menos de 70% do repassado como executado."""
-    return d.fracao_declarada is not None and d.fracao_declarada < EXECUCAO_DECLARADA_MINIMA
+    return d.fracao_final_declarada is not None and d.fracao_final_declarada < EXECUCAO_DECLARADA_MINIMA
+
+
+def a9_recursos_sem_empenho(d: DadosEmenda) -> bool:
+    """Contabilidade do ente (SICONFI): menos de 30% das emendas Pix recebidas há mais de 180 dias foram empenhadas."""
+    return d.recursos_sem_empenho and not d.evidencias_validas
 
 
 REGRAS = {
@@ -209,6 +255,7 @@ REGRAS = {
     "A6": a6_contratacao_direta,
     "A7": a7_valor_desproporcional,
     "A8": a8_execucao_declarada_baixa,
+    "A9": a9_recursos_sem_empenho,
 }
 
 DESCRICAO = {
@@ -220,6 +267,7 @@ DESCRICAO = {
     "A6": "Contratação direta (dispensa ou inexigibilidade) associada ao recurso",
     "A7": "Valor contratado muito acima ou abaixo do valor repassado",
     "A8": "Relatório de gestão final declara menos de 70% do valor repassado como executado",
+    "A9": "Contabilidade do ente (SICONFI): menos de 30% das emendas Pix recebidas há mais de 180 dias empenhadas",
 }
 
 

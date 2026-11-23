@@ -23,7 +23,7 @@ ROTULO_STATUS = {
     "amarelo": "Evidência parcial",
     "laranja": "Em revisão",
     "vermelho": "Indício para apuração",
-    "azul": "Sem fonte para verificar",
+    "azul": "Sem evidência localizada",
     "cinza": "Dados insuficientes / dentro do prazo",
 }
 ASSINATURA = "A próxima resposta pode transformar seu negócio."

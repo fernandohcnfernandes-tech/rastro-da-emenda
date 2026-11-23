@@ -217,9 +217,9 @@ def test_resumo_alertas_e_listas(cliente) -> None:
     assert r["percentual_com_evidencia"] == 50.0 and r["ranking_indicios"][0]["codigo_ibge"] == "2401859"
     assert r["por_uf"][0]["uf"] == "RN"
     al = {a["codigo"]: a for a in cliente.get("/alertas").json()}
-    assert al["A1"]["emendas"] == 1 and al["A2"]["emendas"] == 0 and len(al) == 8
+    assert al["A1"]["emendas"] == 1 and al["A2"]["emendas"] == 0 and len(al) == 9
     assert cliente.get("/emendas", params={"alerta": "A1"}).json()["total"] == 1
-    assert cliente.get("/emendas", params={"alerta": "A9"}).status_code == 422
+    assert cliente.get("/emendas", params={"alerta": "A10"}).status_code == 422
     assert cliente.get("/emendas", params={"ordem": "recentes"}).status_code == 200
     m = cliente.get("/municipios", params={"busca": "exemplo"}).json()
     assert m["total"] == 1 and m["itens"][0]["status"] == "vermelho"

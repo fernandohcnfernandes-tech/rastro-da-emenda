@@ -19,7 +19,8 @@ from rastro.config import config
 from rastro.log import log
 from rastro.motor.ia import _cache_gravar, _cache_ler
 
-VERSAO = "4"  # 4: laranja (em revisão). 2: fontes oficiais públicas. 3: relatório de gestão como execução declarada
+VERSAO = "5"  # 2: fontes oficiais públicas. 3: relatório de gestão como execução declarada. 4: laranja.
+# 5: vermelho só com sinal contrário; contabilidade do SICONFI.
 LIMITE_LISTA = 20
 
 SISTEMA = """Você é o consultor de dados do Rastro da Emenda ({site}), portal público que acompanha a execução das \
@@ -31,11 +32,14 @@ Como os dados funcionam:
 repasse), amarelo (evidência parcial, ou execução declarada pelo ente no relatório de gestão final \
 sem documento independente), laranja (em revisão: documento possivelmente compatível, \
 mas com confiança abaixo de 60%; não é evidência nem ausência), vermelho (indício para apuração: pago há mais \
-de 180 dias sem evidência nas \
-fontes que cobrem o ente), azul (ente sem fonte pública para verificar — neutro) e cinza (dados insuficientes, \
-pagamento recente ou verificação em andamento).
+de 180 dias, sem documento nas fontes e com sinal contrário — contabilidade do ente no SICONFI com menos de 30% das \
+emendas Pix empenhadas, ou relatório final declarando menos de 70%), azul (sem evidência localizada e sem sinal \
+contrário — neutro; a busca automática acha o contrato em só ~22% das emendas que o ente declara executadas) e cinza \
+(dados insuficientes, pagamento recente ou verificação em andamento). Amarelo inclui execução declarada pelo ente \
+(relatório de gestão entregue ≥ 70%, ou contabilidade SICONFI com ≥ 70% das emendas Pix do ente empenhadas).
 - Fontes: Transferegov e Portal da Transparência (emendas e pagamentos), PNCP (contratos e licitações), Tribunais de \
-Contas com dados abertos (RS, SP, PI, RN), Querido Diário (diários oficiais), Câmara e Senado (perfil dos autores).
+Contas com dados abertos (RS, SP, PI, RN), Querido Diário (diários oficiais), SICONFI/Tesouro (contabilidade dos \
+entes, fonte 706), Câmara e Senado (perfil dos autores).
 - A verificação no PNCP ainda está em andamento para parte dos entes; muitos cinzas são "verificação em andamento". \
 Diga isso quando ajudar a interpretar números.
 
@@ -58,7 +62,7 @@ _FILTROS = {
     "parlamentar": {"type": "string", "description": "parte do nome do parlamentar autor"},
     "ano": {"type": "integer", "description": "ano da emenda"},
     "status": {"type": "string", "enum": ["verde", "amarelo", "laranja", "vermelho", "azul", "cinza"]},
-    "alerta": {"type": "string", "enum": ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8"]},
+    "alerta": {"type": "string", "enum": ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9"]},
     "esfera": {"type": "string", "enum": ["municipal", "estadual"], "description": "estadual inclui o DF"},
     "busca": {"type": "string", "description": "texto livre: beneficiário, objeto (ex.: 'ambulância'), número"},
 }

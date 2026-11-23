@@ -20,13 +20,15 @@ from rastro.config import config
 from rastro.db.conexao import transacao
 from rastro.jobs.execucao import Execucao
 from rastro.log import cronometro
-from rastro.motor import ia, semaforo
+from rastro.motor import contabil, ia, semaforo
 from rastro.motor.pre_filtro import Evidencia, Similaridade, selecionar_candidatos
 from rastro.motor.regras import Correspondencia, DadosEmenda, Relatorio
 
 PARALELISMO_IA = 8  # chamadas simultâneas à IA (cada uma com sua conexão ao banco para o cache)
-VERSAO_MOTOR = "7"  # 2: similaridade palavras + caracteres; fonte TCE. 3: faixa "em revisão"
+VERSAO_MOTOR = "8"  # 2: similaridade palavras + caracteres; fonte TCE. 3: faixa "em revisão"
 # 6: relatório de gestão final como execução declarada (amarelo) e alerta A8. 7: "em revisão" passa a ser laranja
+# 8: vermelho só com sinal contrário (SICONFI sem empenho, A9; ou relatório final < 70%); sem documento → azul;
+#    execução contábil (SICONFI) e relatórios parciais entram como execução declarada (amarelo)
 
 SQL_PLANOS = """
 SELECT p.id_plano_acao, p.uf_beneficiario AS uf, p.emenda_numero, p.cnpj_beneficiario,
@@ -71,7 +73,7 @@ def texto_da_emenda(p: Any) -> str:
     return " ".join(x.strip() for x in partes if x and x.strip())
 
 
-def _hash(p: Any, candidatos: list, tem_pncp: Any) -> str:
+def _hash(p: Any, candidatos: list, tem_pncp: Any, contabil: Any = None) -> str:
     base = {
         "v": VERSAO_MOTOR,
         "ia": ia.ia_disponivel(),
@@ -79,6 +81,7 @@ def _hash(p: Any, candidatos: list, tem_pncp: Any) -> str:
         "obj": texto_da_emenda(p),
         "cand": [(c.evidencia.id, str(c.evidencia.valor), c.evidencia.tipo_ato) for c in candidatos],
         "rel": p.relatorios,
+        "contabil": contabil.resumo() if contabil else None,
         "cob": [p.codigo_ibge, p.populacao, p.obrigado_pncp, p.coberto_querido_diario, p.coberto_tce, tem_pncp],
         "hoje_semana": date.today().isocalendar()[:2],  # reavalia o prazo de 180 dias ao menos 1x por semana
     }
@@ -93,6 +96,9 @@ def processar_uf(uf: str, somente: set[int] | None = None, forcar: bool = False)
         planos = conn.execute(text(SQL_PLANOS), params).all()
         cnpjs = sorted({c for p in planos for c in [p.cnpj_beneficiario, *(p.executores or [])] if c})
         evidencias = conn.execute(text(SQL_EVIDENCIAS), {"cnpjs": cnpjs}).all()
+        contabeis = contabil.carregar(
+            conn, sorted({p.codigo_ibge for p in planos if p.codigo_ibge}), cfg.prazo_sem_evidencia_dias
+        )
         verificados = {
             r[0] for r in conn.execute(text("SELECT cnpj FROM cobertura_pncp WHERE cnpj = ANY(:c)"), {"c": cnpjs})
         }
@@ -135,7 +141,7 @@ def processar_uf(uf: str, somente: set[int] | None = None, forcar: bool = False)
         )
         tem_pncp = bool(cnpjs_plano & com_pncp)
         pncp_verificado = bool(cnpjs_plano & verificados)
-        chave = _hash(p, cands, (tem_pncp, pncp_verificado))
+        chave = _hash(p, cands, (tem_pncp, pncp_verificado), contabeis.get(p.codigo_ibge))
         if not forcar and chave == p.hash_anterior:
             contagem["sem_mudanca"] += 1
             continue
@@ -215,6 +221,7 @@ def processar_uf(uf: str, somente: set[int] | None = None, forcar: bool = False)
                 plano_generico=generico.generico and generico.confianca >= ia.CONFIANCA_MINIMA,
                 relatorios=[_relatorio(r) for r in (p.relatorios or [])],
                 correspondencias=correspondencias,
+                contabil=contabeis.get(p.codigo_ibge),
                 prazo_dias=cfg.prazo_sem_evidencia_dias,
                 limite_populacao=cfg.limite_populacao_pequeno,
             )
@@ -225,6 +232,7 @@ def processar_uf(uf: str, somente: set[int] | None = None, forcar: bool = False)
                 "candidatos": len(cands),
                 "evidencias_validas": len(dados.evidencias_validas),
                 "plano_generico": dados.plano_generico,
+                "contabil": dados.contabil.resumo() if dados.contabil else None,
             }
             conn.execute(
                 text(
