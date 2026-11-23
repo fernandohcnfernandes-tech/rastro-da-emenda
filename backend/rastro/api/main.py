@@ -26,7 +26,7 @@ app = FastAPI(
 )
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
 
-Status = Literal["verde", "amarelo", "vermelho", "azul", "cinza"]
+Status = Literal["verde", "amarelo", "laranja", "vermelho", "azul", "cinza"]
 Alerta = Literal["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8"]
 
 

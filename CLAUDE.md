@@ -29,7 +29,7 @@ Projeto da equipe QKV para o Hack Brasil 2026, trilha **Logística & automação
 
 Marca QKV works. Desde 22/11/2026 o frontend segue a linguagem visual do QKV OS (tema escuro azul-marinho, menu lateral recolhível), reescrita do zero: fundo `#05070c`, superfícies `#0b1424`/`#111c30`, bordas `#26385d`, texto `#f7f7f4`, apoio `#9fb0d8`, ação `#3a68ff`, rótulos `#75a7ff`; tokens em `frontend/src/app/globals.css`. Fonte Inter (via `next/font`, servida pelo próprio site). O dossiê PDF mantém `#0B0F1A`, `#2563EB`, `#64748B` e Helvetica. Logo: `frontend/public/marca/`. Assinatura: "A próxima resposta pode transformar seu negócio."
 
-Cores do semáforo: verde `#16A34A`, amarelo `#EAB308`, vermelho `#DC2626`, azul `#2563EB`, cinza `#94A3B8`.
+Cores do semáforo: verde `#16A34A`, amarelo `#EAB308`, laranja `#EA580C` (em revisão), vermelho `#DC2626`, azul `#2563EB`, cinza `#94A3B8`.
 
 ## 5. Arquitetura
 
@@ -103,3 +103,4 @@ Desenvolver em fases, nesta ordem: ambiente e banco → Transferegov → Portal 
 - 22/11/2026 — **Estados e DF** verificados e exibidos (camada no mapa, página `/estados`, filtro de esfera); **Querido Diário** para qualquer ente coberto sem PNCP (479 entes); emendas ainda não consultadas no PNCP ficam cinza ("verificação em andamento"). **Cobertura das fontes** com visualizador da coleta por fonte (quantidade, período, última coleta); **Emendas por UF** em quantidade ou valor; **assistente de IA** na ficha e dossiê com análise opcional (aguarda `ANTHROPIC_WORKSPACE_ID`). IA no motor desligada até decisão de custo.
 - 22/11/2026 — IA do motor ligada (Haiku 5.5) e motor rodando em todas as UFs; **Pergunte à IA** (consultor sobre o portal inteiro); mapa de estados corrigido; carga do PNCP dividida entre o servidor local e o brasil4 (`dados/mesclar_pncp_brasil4.sh`); publicação dos dados em produção por `dados/sincronizar_prod.sh` (espera o motor, pausa a carga do brasil4, mescla, restaura e retoma).
 - 22/11/2026 — **Relatório de gestão** final como "execução declarada" (amarelo, nunca verde), alerta **A8**, A3 aceita ENVIADO_PARA_ANALISE; fontes oficiais da ficha nas páginas públicas do Transferegov; motor v6 reprocessando todas as UFs (`dados/reprocessar_e_sincronizar.sh`) antes da cópia para produção.
+- 23/11/2026 — **Semáforo laranja** para emendas "em revisão" (documento possivelmente compatível com confiança 45–59%), antes misturadas ao cinza: enum `status_semaforo` (migração 009), motor v7, API/agregações, dossiê, consultor de IA e frontend (cor, rótulo, legenda, filtros).

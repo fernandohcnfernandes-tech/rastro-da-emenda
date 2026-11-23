@@ -13,6 +13,7 @@ APOIO = (100, 116, 139)  # #64748B
 CORES_STATUS = {
     "verde": (22, 163, 74),
     "amarelo": (234, 179, 8),
+    "laranja": (234, 88, 12),
     "vermelho": (220, 38, 38),
     "azul": (37, 99, 235),
     "cinza": (148, 163, 184),
@@ -20,6 +21,7 @@ CORES_STATUS = {
 ROTULO_STATUS = {
     "verde": "Execução com evidência",
     "amarelo": "Evidência parcial",
+    "laranja": "Em revisão",
     "vermelho": "Indício para apuração",
     "azul": "Sem fonte para verificar",
     "cinza": "Dados insuficientes / dentro do prazo",

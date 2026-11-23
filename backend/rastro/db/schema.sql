@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS correspondencia (
 );
 
 DO $$ BEGIN
-    CREATE TYPE status_semaforo AS ENUM ('verde', 'amarelo', 'vermelho', 'azul', 'cinza');
+    CREATE TYPE status_semaforo AS ENUM ('verde', 'amarelo', 'laranja', 'vermelho', 'azul', 'cinza');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS avaliacao (

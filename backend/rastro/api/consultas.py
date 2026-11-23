@@ -294,7 +294,7 @@ def parlamentar(conn: Connection, nome: str) -> dict[str, Any] | None:
     }
 
 
-ORDEM_GRAVIDADE = {"vermelho": 4, "amarelo": 3, "azul": 2, "verde": 1, "cinza": 0}
+ORDEM_GRAVIDADE = {"vermelho": 5, "laranja": 4, "amarelo": 3, "azul": 2, "verde": 1, "cinza": 0}
 
 
 def mapa(conn: Connection, uf: str | None = None) -> list[dict[str, Any]]:
@@ -306,6 +306,7 @@ def mapa(conn: Connection, uf: str | None = None) -> list[dict[str, Any]]:
         " count(*) FILTER (WHERE a.status = 'amarelo') AS amarelo,"
         " count(*) FILTER (WHERE a.status = 'vermelho') AS vermelho,"
         " count(*) FILTER (WHERE a.status = 'azul') AS azul,"
+        " count(*) FILTER (WHERE a.status = 'laranja') AS laranja,"
         " count(*) FILTER (WHERE a.status = 'cinza' OR a.status IS NULL) AS cinza"
         " FROM plano_acao p JOIN ente en ON en.cnpj = p.cnpj_beneficiario"
         " JOIN municipio m ON m.codigo_ibge = en.codigo_ibge"
@@ -331,6 +332,7 @@ def mapa_estados(conn: Connection) -> list[dict[str, Any]]:
         " count(*) FILTER (WHERE a.status = 'amarelo') AS amarelo,"
         " count(*) FILTER (WHERE a.status = 'vermelho') AS vermelho,"
         " count(*) FILTER (WHERE a.status = 'azul') AS azul,"
+        " count(*) FILTER (WHERE a.status = 'laranja') AS laranja,"
         " count(*) FILTER (WHERE a.status = 'cinza' OR a.status IS NULL) AS cinza"
         " FROM plano_acao p JOIN ente en ON en.cnpj = p.cnpj_beneficiario"
         " LEFT JOIN avaliacao a ON a.id_plano_acao = p.id_plano_acao"
@@ -346,7 +348,7 @@ def status_predominante(contagens: dict[str, int]) -> str:
     """Cor do município no mapa: vermelho se houver qualquer vermelho; senão a maioria entre os demais."""
     if contagens.get("vermelho"):
         return "vermelho"
-    candidatos = {s: contagens.get(s, 0) for s in ("amarelo", "verde", "azul", "cinza")}
+    candidatos = {s: contagens.get(s, 0) for s in ("laranja", "amarelo", "verde", "azul", "cinza")}
     if not any(candidatos.values()):
         return "cinza"
     return max(candidatos, key=lambda s: (candidatos[s], ORDEM_GRAVIDADE[s]))
@@ -368,6 +370,7 @@ def cobertura(conn: Connection) -> list[dict[str, Any]]:
         " count(DISTINCT p.id_plano_acao) FILTER (WHERE a.status = 'amarelo') AS amarelo,"
         " count(DISTINCT p.id_plano_acao) FILTER (WHERE a.status = 'vermelho') AS vermelho,"
         " count(DISTINCT p.id_plano_acao) FILTER (WHERE a.status = 'azul') AS azul,"
+        " count(DISTINCT p.id_plano_acao) FILTER (WHERE a.status = 'laranja') AS laranja,"
         " count(DISTINCT p.id_plano_acao) FILTER (WHERE a.status = 'cinza' OR a.status IS NULL) AS cinza"
         " FROM ente en JOIN plano_acao p ON p.cnpj_beneficiario = en.cnpj AND p.ano_plano_acao >= 2024"
         " LEFT JOIN cobertura_pncp cp ON cp.cnpj = en.cnpj"
@@ -431,11 +434,13 @@ def resumo(conn: Connection) -> dict[str, Any]:
         " sum(coalesce(pg.v, 0)) FILTER (WHERE a.status = 'amarelo') AS amarelo_valor,"
         " sum(coalesce(pg.v, 0)) FILTER (WHERE a.status = 'vermelho') AS vermelho_valor,"
         " sum(coalesce(pg.v, 0)) FILTER (WHERE a.status = 'azul') AS azul_valor,"
+        " sum(coalesce(pg.v, 0)) FILTER (WHERE a.status = 'laranja') AS laranja_valor,"
         " sum(coalesce(pg.v, 0)) FILTER (WHERE a.status = 'cinza' OR a.status IS NULL) AS cinza_valor,"
         " count(*) FILTER (WHERE a.status = 'verde') AS verde,"
         " count(*) FILTER (WHERE a.status = 'amarelo') AS amarelo,"
         " count(*) FILTER (WHERE a.status = 'vermelho') AS vermelho,"
         " count(*) FILTER (WHERE a.status = 'azul') AS azul,"
+        " count(*) FILTER (WHERE a.status = 'laranja') AS laranja,"
         " count(*) FILTER (WHERE a.status = 'cinza' OR a.status IS NULL) AS cinza"
         " FROM plano_acao p LEFT JOIN avaliacao a USING (id_plano_acao)"
         " LEFT JOIN LATERAL (SELECT sum(valor) v FROM pagamento g WHERE g.id_plano_acao = p.id_plano_acao) pg ON true"
@@ -502,6 +507,7 @@ def listar_municipios(conn: Connection, busca: str | None, uf: str | None, pagin
         " count(*) AS emendas, sum(coalesce(pg.v, 0)) AS repassado,"
         " count(*) FILTER (WHERE a.status = 'verde') AS verde, count(*) FILTER (WHERE a.status = 'amarelo') AS amarelo,"
         " count(*) FILTER (WHERE a.status = 'vermelho') AS vermelho, count(*) FILTER (WHERE a.status = 'azul') AS azul,"
+        " count(*) FILTER (WHERE a.status = 'laranja') AS laranja,"
         " count(*) FILTER (WHERE a.status = 'cinza' OR a.status IS NULL) AS cinza"
         + base
         + " GROUP BY en.codigo_ibge ORDER BY repassado DESC LIMIT :lim OFFSET :off",
@@ -561,6 +567,7 @@ def listar_parlamentares(
         " min(pr.casa) AS casa, min(pr.url_foto) AS url_foto,"
         " count(*) FILTER (WHERE a.status = 'verde') AS verde, count(*) FILTER (WHERE a.status = 'amarelo') AS amarelo,"
         " count(*) FILTER (WHERE a.status = 'vermelho') AS vermelho, count(*) FILTER (WHERE a.status = 'azul') AS azul,"
+        " count(*) FILTER (WHERE a.status = 'laranja') AS laranja,"
         " count(*) FILTER (WHERE a.status = 'cinza' OR a.status IS NULL) AS cinza"
         + base
         + " GROUP BY p.parlamentar_nome ORDER BY repassado DESC LIMIT :lim OFFSET :off",

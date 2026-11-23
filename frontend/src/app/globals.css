@@ -24,6 +24,7 @@
   --t-rotulo: #75a7ff;
   --t-st-verde: #4fd19b;
   --t-st-amarelo: #f0b85a;
+  --t-st-laranja: #ff8f4d;
   --t-st-vermelho: #ff6b78;
   --t-st-azul: #75a7ff;
   --t-st-cinza: #c7d4ef;
@@ -58,6 +59,7 @@
   --t-rotulo: #1d4ed8;
   --t-st-verde: #166534;
   --t-st-amarelo: #854d0e;
+  --t-st-laranja: #9a3412;
   --t-st-vermelho: #a61b1b;
   --t-st-azul: #1d4ed8;
   --t-st-cinza: #334155;
@@ -96,11 +98,13 @@
   /* Semáforo: cores sólidas (CLAUDE.md) e variantes de texto por tema */
   --color-verde: #16a34a;
   --color-amarelo: #eab308;
+  --color-laranja: #ea580c;
   --color-vermelho: #dc2626;
   --color-azul: #2563eb;
   --color-cinza: #94a3b8;
   --color-verde-claro: var(--t-st-verde);
   --color-amarelo-claro: var(--t-st-amarelo);
+  --color-laranja-claro: var(--t-st-laranja);
   --color-vermelho-claro: var(--t-st-vermelho);
   --color-azul-claro: var(--t-st-azul);
   --color-cinza-claro: var(--t-st-cinza);

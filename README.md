@@ -11,7 +11,7 @@ O Rastro da Emenda integra os sistemas federais que registram as **transferênci
 1. coleta valor, objeto, parlamentar, beneficiário, executores, pagamentos, plano de trabalho e relatórios de gestão (Transferegov e Portal da Transparência);
 2. procura evidências de uso do recurso no **PNCP** (contratos e contratações do ente e dos executores), nos contratos informados aos **Tribunais de Contas** com dados abertos (RS, SP, PI e RN) e, para qualquer ente coberto sem evidência no PNCP, nos diários oficiais via **Querido Diário**;
 3. usa IA (**Claude Haiku 5.5**; sem chave, uma regra transparente) para decidir se a evidência corresponde ao objeto e ao valor da emenda — documentos que citam o número da emenda entram sempre como candidatos;
-4. atribui um **semáforo de execução** (verde, amarelo, vermelho, azul, cinza), gera alertas A1–A7, um **dossiê em PDF** com links para as fontes oficiais (opcionalmente com parecer da IA) e **alertas por e-mail** para quem assina um município ou parlamentar;
+4. atribui um **semáforo de execução** (verde, amarelo, laranja, vermelho, azul, cinza), gera alertas A1–A7, um **dossiê em PDF** com links para as fontes oficiais (opcionalmente com parecer da IA) e **alertas por e-mail** para quem assina um município ou parlamentar;
 5. oferece, na ficha de cada emenda, um **assistente de análise** (**Claude Sonnet 5.5**) que consulta o banco do projeto, responde sobre a emenda e os contratos e redige trechos para o dossiê, sempre em linguagem de indício e citando as fontes;
 6. tem o menu **Pergunte à IA** ([/assistente](https://rastrodaemenda.com.br/assistente)): um consultor (**Claude Sonnet 5.5**) que responde perguntas em linguagem natural sobre todos os dados do portal — panorama, rankings por UF, município, parlamentar, partido ou beneficiário, buscas e fichas —, com tabelas e links para as fichas usadas.
 
@@ -124,7 +124,7 @@ Somente APIs e bases **oficiais e abertas**, respeitando limites de requisição
 ## Limitações
 
 - Municípios com até 20 mil habitantes podem publicar contratações só no diário oficial até abril de 2027; neles a verificação depende do Querido Diário e dos Tribunais de Contas com dados abertos, que cobrem parte dos municípios. Sem nenhuma fonte, o status é **azul** (neutro), nunca vermelho.
-- Enquanto o ente não foi consultado no PNCP, a emenda fica **cinza** ("verificação em andamento"); documentos com confiança entre 45% e 59% deixam a emenda **em revisão** (cinza), para conferência humana.
+- Enquanto o ente não foi consultado no PNCP, a emenda fica **cinza** ("verificação em andamento"); documentos com confiança entre 45% e 59% deixam a emenda **em revisão** (laranja), para conferência humana.
 - A emenda Pix entra no caixa do ente sem conta específica: a ligação com contratos é inferida por CNPJ (beneficiário e executores), data, valor e semelhança de objeto.
 - Contratos abaixo de 10% do repasse não entram na análise; execuções pulverizadas em muitos contratos pequenos tendem a aparecer como amarelo ou vermelho.
 - Sem `ANTHROPIC_API_KEY` (ou com `MOTOR_USA_IA=false`), a comparação usa uma heurística transparente (indicada na ficha como "classificação heurística") e o assistente fica indisponível. A IA pode errar: o sistema sempre mostra o documento oficial para conferência.

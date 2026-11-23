@@ -69,9 +69,9 @@ def test_confianca_baixa_nao_conta_como_evidencia() -> None:
     assert status == "vermelho" and "A1" in alertas
 
 
-def test_candidato_em_revisao_fica_cinza_e_nao_gera_a1() -> None:
+def test_candidato_em_revisao_fica_laranja_e_nao_gera_a1() -> None:
     status, alertas, just = semaforo.avaliar(dados(correspondencias=[corr(confianca=0.5)]))
-    assert status == "cinza" and "A1" not in alertas and "Em revisão" in just
+    assert status == "laranja" and "A1" not in alertas and "Em revisão" in just
 
 
 def test_vermelho_pago_ha_mais_de_180_dias_sem_evidencia() -> None:

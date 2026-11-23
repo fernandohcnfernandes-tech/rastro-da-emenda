@@ -4,6 +4,7 @@ import type { Status } from "./tipos";
 export const CORES: Record<Status, string> = {
   verde: "#16A34A",
   amarelo: "#EAB308",
+  laranja: "#EA580C",
   vermelho: "#DC2626",
   azul: "#2563EB",
   cinza: "#94A3B8",
@@ -13,6 +14,7 @@ export const CORES: Record<Status, string> = {
 export const CORES_TEXTO: Record<Status, string> = {
   verde: "var(--t-st-verde)",
   amarelo: "var(--t-st-amarelo)",
+  laranja: "var(--t-st-laranja)",
   vermelho: "var(--t-st-vermelho)",
   azul: "var(--t-st-azul)",
   cinza: "var(--t-st-cinza)",
@@ -21,12 +23,13 @@ export const CORES_TEXTO: Record<Status, string> = {
 export const ROTULOS: Record<Status, string> = {
   verde: "Execução com evidência",
   amarelo: "Evidência parcial",
+  laranja: "Em revisão",
   vermelho: "Indício para apuração",
   azul: "Sem fonte para verificar",
-  cinza: "Dados insuficientes ou em revisão",
+  cinza: "Dados insuficientes ou em andamento",
 };
 
-export const ORDEM_STATUS: Status[] = ["vermelho", "amarelo", "verde", "azul", "cinza"];
+export const ORDEM_STATUS: Status[] = ["vermelho", "laranja", "amarelo", "verde", "azul", "cinza"];
 
 export function brl(valor: number | null | undefined): string {
   if (valor === null || valor === undefined) return "—";

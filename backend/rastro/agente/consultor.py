@@ -19,7 +19,7 @@ from rastro.config import config
 from rastro.log import log
 from rastro.motor.ia import _cache_gravar, _cache_ler
 
-VERSAO = "3"  # 2: fontes oficiais públicas. 3: relatório de gestão como execução declarada
+VERSAO = "4"  # 4: laranja (em revisão). 2: fontes oficiais públicas. 3: relatório de gestão como execução declarada
 LIMITE_LISTA = 20
 
 SISTEMA = """Você é o consultor de dados do Rastro da Emenda ({site}), portal público que acompanha a execução das \
@@ -29,9 +29,11 @@ perguntas de cidadãos, jornalistas e órgãos de controle sobre os dados do por
 Como os dados funcionam:
 - Cada plano de ação (emenda) recebe um status: verde (execução com evidência: contrato compatível cobrindo ≥ 70% do \
 repasse), amarelo (evidência parcial, ou execução declarada pelo ente no relatório de gestão final \
-sem documento independente), vermelho (indício para apuração: pago há mais de 180 dias sem evidência nas \
+sem documento independente), laranja (em revisão: documento possivelmente compatível, \
+mas com confiança abaixo de 60%; não é evidência nem ausência), vermelho (indício para apuração: pago há mais \
+de 180 dias sem evidência nas \
 fontes que cobrem o ente), azul (ente sem fonte pública para verificar — neutro) e cinza (dados insuficientes, \
-pagamento recente, verificação em andamento ou em revisão).
+pagamento recente ou verificação em andamento).
 - Fontes: Transferegov e Portal da Transparência (emendas e pagamentos), PNCP (contratos e licitações), Tribunais de \
 Contas com dados abertos (RS, SP, PI, RN), Querido Diário (diários oficiais), Câmara e Senado (perfil dos autores).
 - A verificação no PNCP ainda está em andamento para parte dos entes; muitos cinzas são "verificação em andamento". \
@@ -55,7 +57,7 @@ _FILTROS = {
     "municipio": {"type": "string", "description": "código IBGE ou parte do nome do município"},
     "parlamentar": {"type": "string", "description": "parte do nome do parlamentar autor"},
     "ano": {"type": "integer", "description": "ano da emenda"},
-    "status": {"type": "string", "enum": ["verde", "amarelo", "vermelho", "azul", "cinza"]},
+    "status": {"type": "string", "enum": ["verde", "amarelo", "laranja", "vermelho", "azul", "cinza"]},
     "alerta": {"type": "string", "enum": ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8"]},
     "esfera": {"type": "string", "enum": ["municipal", "estadual"], "description": "estadual inclui o DF"},
     "busca": {"type": "string", "description": "texto livre: beneficiário, objeto (ex.: 'ambulância'), número"},
@@ -107,11 +109,13 @@ FERRAMENTAS = [
                         "repassado",
                         "verde",
                         "amarelo",
+                        "laranja",
                         "vermelho",
                         "azul",
                         "cinza",
                         "valor_verde",
                         "valor_amarelo",
+                        "valor_laranja",
                         "valor_vermelho",
                         "valor_azul",
                         "valor_cinza",
@@ -172,7 +176,7 @@ DIMENSOES = {
     "partido": "pr.partido",
     "beneficiario": "p.nome_beneficiario",
 }
-_STATUS = ("verde", "amarelo", "vermelho", "azul", "cinza")
+_STATUS = ("verde", "amarelo", "laranja", "vermelho", "azul", "cinza")
 _ST = "coalesce(a.status::text, 'cinza')"
 
 

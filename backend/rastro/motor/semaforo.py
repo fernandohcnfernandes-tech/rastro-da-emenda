@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from rastro.motor.regras import DESCRICAO, DadosEmenda, aplicar_regras
 
-STATUS = ("verde", "amarelo", "vermelho", "azul", "cinza")
+STATUS = ("verde", "amarelo", "laranja", "vermelho", "azul", "cinza")
 COBERTURA_VERDE = Decimal("0.70")  # contratos compatíveis cobrindo ≥ 70% do repassado → verde
 
 
@@ -17,7 +17,8 @@ def _brl(valor: Decimal | None) -> str:
 
 
 def classificar(d: DadosEmenda) -> tuple[str, str]:
-    """Ordem: cinza → verde → amarelo (inclui execução declarada no relatório final) → (vermelho | azul) → cinza."""
+    """Ordem: cinza → verde → amarelo (inclui execução declarada no relatório final) → laranja (em revisão)
+    → (vermelho | azul) → cinza."""
     if d.primeiro_pagamento is None:
         return "cinza", "Dados insuficientes: ainda não há pagamento registrado no Transferegov."
     if not d.codigo_ibge:
@@ -61,7 +62,7 @@ def classificar(d: DadosEmenda) -> tuple[str, str]:
 
     if d.em_revisao:
         melhor = max(d.em_revisao, key=lambda c: c.confianca)
-        return "cinza", (
+        return "laranja", (
             f"Em revisão: {len(d.em_revisao)} documento(s) possivelmente compatível(is) em {_fonte(melhor.fonte)}, "
             f"com confiança abaixo de 60% (maior: {melhor.confianca:.0%}). Não conta como evidência nem como ausência."
         )

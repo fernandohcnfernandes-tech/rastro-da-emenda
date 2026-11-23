@@ -207,6 +207,7 @@ def test_status_predominante() -> None:
     assert status_predominante({"vermelho": 1, "verde": 9}) == "vermelho"
     assert status_predominante({"verde": 3, "azul": 1}) == "verde"
     assert status_predominante({"amarelo": 1, "verde": 1}) == "amarelo"
+    assert status_predominante({"laranja": 2, "verde": 1}) == "laranja"
     assert status_predominante({}) == "cinza"
 
 

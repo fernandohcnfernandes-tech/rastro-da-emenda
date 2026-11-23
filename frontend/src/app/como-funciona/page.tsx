@@ -7,9 +7,10 @@ export const metadata = { title: "Como funciona" };
 const SEMAFORO: [Status, string][] = [
   ["verde", "Há contrato compatível com o objeto e o valor da emenda (no PNCP, no Tribunal de Contas ou em extrato publicado no diário oficial), com confiança de pelo menos 60% e cobrindo ao menos 70% do valor repassado."],
   ["amarelo", "Evidência parcial: licitação ou contratação em andamento sem contrato, contratos compatíveis que cobrem menos de 70% do valor repassado, ou execução declarada pelo próprio ente no relatório de gestão final (70% ou mais do repassado) sem documento independente localizado."],
+  ["laranja", "Em revisão: há documento possivelmente compatível com a emenda, mas com confiança entre 45% e 59%, abaixo do mínimo para contar como evidência. Pede conferência humana; não é evidência de execução nem indício de problema."],
   ["vermelho", "Pago há mais de 180 dias e nenhuma evidência nas fontes que cobrem o ente. É um indício para apuração, nunca uma acusação."],
   ["azul", "Ente sem nenhuma fonte pública para verificar: município com até 20 mil habitantes sem registros no PNCP, fora da cobertura do Querido Diário e sem dados abertos de contratos do Tribunal de Contas. Neutro — não é indício de problema."],
-  ["cinza", "Dados insuficientes (sem pagamento, sem objeto ou sem código IBGE); pagamento recente, ainda dentro do prazo de 180 dias; verificação em andamento (o ente ainda não foi consultado no PNCP); ou em revisão (documento possivelmente compatível, com confiança entre 45% e 59%, que pede conferência humana)."],
+  ["cinza", "Dados insuficientes (sem pagamento, sem objeto ou sem código IBGE); pagamento recente, ainda dentro do prazo de 180 dias; ou verificação em andamento (o ente ainda não foi consultado no PNCP)."],
 ];
 
 const ALERTAS: [string, string][] = [

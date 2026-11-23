@@ -1,4 +1,4 @@
-export type Status = "verde" | "amarelo" | "vermelho" | "azul" | "cinza";
+export type Status = "verde" | "amarelo" | "laranja" | "vermelho" | "azul" | "cinza";
 
 export interface EmendaResumo {
   id_plano_acao: number;
@@ -114,6 +114,7 @@ export interface PontoMapa {
   status: Status;
   verde: number;
   amarelo: number;
+  laranja: number;
   vermelho: number;
   azul: number;
   cinza: number;
@@ -130,6 +131,7 @@ export interface CoberturaUF {
   emendas: number;
   verde: number;
   amarelo: number;
+  laranja: number;
   vermelho: number;
   azul: number;
   cinza: number;
@@ -138,6 +140,7 @@ export interface CoberturaUF {
 export interface Contagem {
   verde: number;
   amarelo: number;
+  laranja: number;
   vermelho: number;
   azul: number;
   cinza: number;
@@ -158,6 +161,7 @@ export interface Resumo {
     repassado: number;
     verde_valor: number | null;
     amarelo_valor: number | null;
+    laranja_valor: number | null;
     vermelho_valor: number | null;
     azul_valor: number | null;
     cinza_valor: number | null;
