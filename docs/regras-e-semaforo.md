@@ -5,10 +5,12 @@
 | Status | Cor | Condição |
 |---|---|---|
 | `verde` | `#16A34A` | Ao menos um contrato (PNCP) ou extrato de contrato (Querido Diário) compatível com o objeto e com valor coerente, com confiança da IA ≥ 0,6 |
-| `amarelo` | `#EAB308` | Evidência parcial: licitação/contratação em andamento sem contrato, ou contrato compatível que cobre só parte do valor |
+| `amarelo` | `#EAB308` | Evidência parcial: licitação/contratação em andamento sem contrato, contrato compatível que cobre só parte do valor, ou **execução declarada**: relatório de gestão final entregue (DISPONIBILIZADO/ENVIADO_PARA_ANALISE) declarando ≥ 70% do repassado como executado, sem documento independente |
 | `vermelho` | `#DC2626` | Pago há mais de 180 dias e nenhuma evidência nas fontes que cobrem o ente (PNCP; Querido Diário para entes cobertos; Tribunal de Contas onde há dados abertos) |
 | `azul` | `#2563EB` | Município ≤ 20 mil habitantes, sem registro no PNCP e fora da cobertura do Querido Diário — **sem fonte para verificar** (neutro) |
 | `cinza` | `#94A3B8` | Dados insuficientes (sem pagamento ainda, plano de ação incompleto, CNPJ não resolvido), pago há menos de 180 dias, candidato "em revisão" (confiança 0,45–0,59) ou **verificação em andamento** (PNCP ainda não consultado para os CNPJs da emenda) |
+
+**Relatório de gestão.** É declaração do próprio ente, não documento independente: nunca leva a verde. O final entregue com ≥ 70% executado leva a amarelo quando não há contrato nem contratação compatível (o alerta A1 continua valendo); quando há contrato, só entra na justificativa. Relatórios parciais ou em elaboração não mudam o status.
 
 Ordem de decisão: `cinza` → `verde` → `amarelo` → (`vermelho` ou `azul`, conforme cobertura de fontes) → caso contrário `cinza`.
 
@@ -25,7 +27,8 @@ Prazo de referência: 180 dias contados da data do primeiro pagamento (configur�
 | A5 | Objeto do contrato diferente do objeto da emenda | comparação pela IA com justificativa |
 | A6 | Contratação direta (dispensa ou inexigibilidade) com o recurso | modalidade no PNCP / tipo de ato no diário |
 | A7 | Valor contratado muito acima ou abaixo do repassado | razão contrato/repasse fora de [0,5; 1,5] (configurável) |
-| A8 (extensão) | Fornecedor sancionado (CEIS/CNEP) ou com CNPJ aberto há menos de 6 meses | cadastros de sanções e data de abertura |
+| A8 | Relatório de gestão final declara menos de 70% do repassado como executado | `relatorio_gestao` (formato novo: tipo, situação, valor executado) × pagamentos |
+| A9 (extensão) | Fornecedor sancionado (CEIS/CNEP) ou com CNPJ aberto há menos de 6 meses | cadastros de sanções e data de abertura |
 
 ## Pré-filtro antes da IA
 

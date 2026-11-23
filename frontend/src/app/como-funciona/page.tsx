@@ -6,7 +6,7 @@ export const metadata = { title: "Como funciona" };
 
 const SEMAFORO: [Status, string][] = [
   ["verde", "Há contrato compatível com o objeto e o valor da emenda (no PNCP, no Tribunal de Contas ou em extrato publicado no diário oficial), com confiança de pelo menos 60% e cobrindo ao menos 70% do valor repassado."],
-  ["amarelo", "Evidência parcial: licitação ou contratação em andamento sem contrato, ou contratos compatíveis que cobrem menos de 70% do valor repassado."],
+  ["amarelo", "Evidência parcial: licitação ou contratação em andamento sem contrato, contratos compatíveis que cobrem menos de 70% do valor repassado, ou execução declarada pelo próprio ente no relatório de gestão final (70% ou mais do repassado) sem documento independente localizado."],
   ["vermelho", "Pago há mais de 180 dias e nenhuma evidência nas fontes que cobrem o ente. É um indício para apuração, nunca uma acusação."],
   ["azul", "Ente sem nenhuma fonte pública para verificar: município com até 20 mil habitantes sem registros no PNCP, fora da cobertura do Querido Diário e sem dados abertos de contratos do Tribunal de Contas. Neutro — não é indício de problema."],
   ["cinza", "Dados insuficientes (sem pagamento, sem objeto ou sem código IBGE); pagamento recente, ainda dentro do prazo de 180 dias; verificação em andamento (o ente ainda não foi consultado no PNCP); ou em revisão (documento possivelmente compatível, com confiança entre 45% e 59%, que pede conferência humana)."],
@@ -20,6 +20,7 @@ const ALERTAS: [string, string][] = [
   ["A5", "Há contrato do ente no período e na faixa de valor, mas com objeto diferente do da emenda."],
   ["A6", "Contratação direta (dispensa ou inexigibilidade) associada ao recurso."],
   ["A7", "Valor contratado muito acima ou abaixo do repassado (fora de 50% a 150%)."],
+  ["A8", "Relatório de gestão final declara menos de 70% do valor repassado como executado."],
 ];
 
 const FONTES: [string, string, string][] = [
@@ -57,6 +58,7 @@ export default function ComoFunciona() {
           <li>Procuramos contratos e contratações do CNPJ beneficiário e dos executores no PNCP, a partir do 1º pagamento (menos 30 dias).</li>
           <li>Para qualquer ente coberto pelo Querido Diário sem evidência no PNCP (inclusive o DF, pelo DODF), buscamos extratos de contrato, avisos de licitação, homologações e dispensas nos diários oficiais.</li>
           <li>Em RS, SP, PI e RN, usamos também os contratos que municípios e órgãos estaduais informam ao Tribunal de Contas, em dados abertos.</li>
+          <li>Lemos o relatório de gestão que o próprio ente entrega no Transferegov. Por ser uma declaração do ente, e não um documento independente, o relatório final que declara 70% ou mais executado leva no máximo a amarelo (“execução declarada”), nunca a verde; o que declara menos de 70% gera o alerta A8. Relatórios parciais ou em elaboração não mudam o status.</li>
           <li>Um pré-filtro (CNPJ, data, faixa de valor e semelhança de texto) seleciona até 5 candidatos por emenda. Documento que cita o número da emenda entra sempre, na frente.</li>
           <li>A IA (Claude Haiku 5.5, da Anthropic) compara cada candidato com o objeto e o valor da emenda e devolve compatibilidade, confiança, justificativa e trechos citados. Se a IA estiver indisponível, uma regra transparente de semelhança e valor faz essa etapa, e a ficha indica que a classificação foi heurística.</li>
           <li>Regras de alerta e o semáforo são calculados e geram a ficha, o dossiê em PDF e os alertas por e-mail.</li>

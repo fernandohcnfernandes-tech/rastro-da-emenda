@@ -306,3 +306,50 @@ def test_modelo_motor_sobrepoe_os_demais(monkeypatch) -> None:
     cli = ClienteFalso(saida)
     ia.avaliar_correspondencia("obj", {"fonte": "pncp_contrato", "objeto": "t"}, 0.3, None, cliente=cli)
     assert cli.chamadas[0]["model"] == "modelo-x"
+
+
+# ------------------------------------------------------------------- relatório de gestão (declaração do ente)
+
+FINAL_CHEIO = ("Final", "DISPONIBILIZADO", D("400000"), D("0"))
+
+
+def test_relatorio_final_sem_documento_vira_amarelo_nunca_verde() -> None:
+    status, alertas, just = semaforo.avaliar(dados(relatorios=[FINAL_CHEIO]))
+    assert status == "amarelo" and "Execução declarada pelo ente" in just and "100%" in just
+    assert "não substitui o documento" in just
+    assert "A1" in alertas  # continua o indício: declarou, mas não há contrato nas fontes
+    assert "A8" not in alertas
+
+
+def test_relatorio_final_nao_muda_verde_por_contrato_e_entra_na_justificativa() -> None:
+    status, _, just = semaforo.avaliar(dados(relatorios=[FINAL_CHEIO], correspondencias=[corr()]))
+    assert status == "verde" and "declarou no relatório de gestão final 100%" in just
+
+
+def test_relatorio_parcial_ou_em_elaboracao_nao_muda_status() -> None:
+    parcial = ("Parcial", "DISPONIBILIZADO", D("400000"), D("0"))
+    rascunho = ("Final", "EM_ELABORACAO", D("400000"), D("0"))
+    for rel in (parcial, rascunho):
+        status, _, _ = semaforo.avaliar(dados(relatorios=[rel]))
+        assert status == "vermelho"
+
+
+def test_a8_relatorio_final_declara_pouco() -> None:
+    d = dados(relatorios=[("Final", "DISPONIBILIZADO", D("0"), D("400000"))])
+    assert regras.a8_execucao_declarada_baixa(d)
+    status, alertas, _ = semaforo.avaliar(d)
+    assert status == "vermelho" and "A8" in alertas
+    assert not regras.a8_execucao_declarada_baixa(dados(relatorios=[FINAL_CHEIO]))
+    assert not regras.a8_execucao_declarada_baixa(dados())  # sem relatório final
+
+
+def test_a3_aceita_enviado_para_analise() -> None:
+    assert not regras.a3_relatorio_ausente(dados(relatorios=[("Parcial", "ENVIADO_PARA_ANALISE")]))
+
+
+def test_relatorio_do_banco_vira_decimal() -> None:
+    from rastro.motor.processar import _relatorio
+
+    r = _relatorio(["Final", "DISPONIBILIZADO", 400009.0, 0.0])
+    assert r.final and r.valor_executado == D("400009.0") and r.valor_pendente == D("0.0")
+    assert _relatorio(["Parcial", "EM_ELABORACAO"]).valor_executado is None

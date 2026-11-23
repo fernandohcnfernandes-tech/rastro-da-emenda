@@ -148,6 +148,18 @@ async function Conteudo({ params }: { params: Promise<{ id: string }> }) {
       </Cartao>
       <Cartao>
         <TituloCartao>Relatórios de gestão</TituloCartao>
+        <p className="mb-2 text-xs text-discreto">
+          Declaração do próprio ente no Transferegov, não documento independente. O relatório final com 70% ou mais executado leva no
+          máximo a amarelo (“execução declarada”).{" "}
+          <a
+            href={`https://especiais.transferegov.sistema.gov.br/transferencia-especial/plano-acao/detalhe/${f.id_plano_acao}/relatorio-gestao`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-destaque hover:underline"
+          >
+            Ver no Transferegov
+          </a>
+        </p>
         <ul className="divide-y divide-borda/50 text-sm">
           {f.relatorios_gestao.map((r, i) => (
             <li key={i} className="flex justify-between py-2">

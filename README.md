@@ -33,7 +33,7 @@ Câmara e Senado (perfil dos autores) ───────────┘      
 backend/                 Python 3.12 · FastAPI · SQLAlchemy core · psycopg 3 · Pydantic v2
   rastro/conectores/     transferegov, portal, ibge, pncp, querido_diario, tce_rs/sp/pi/rn, congresso (cliente HTTP com retry, limite de taxa e cache)
   rastro/db/             schema.sql + migracoes/NNN_*.sql (aplicados por `python -m rastro.db.migrar`)
-  rastro/motor/          pre_filtro (CNPJ, data, valor, TF-IDF) · ia (saída estruturada + cache) · regras A1–A7 · semaforo · processar
+  rastro/motor/          pre_filtro (CNPJ, data, valor, TF-IDF) · ia (saída estruturada + cache) · regras A1–A8 · semaforo · processar
   rastro/jobs/           carga_inicial (por fonte, retomável) · atualizacao_semanal
   rastro/agente/         assistente da ficha e consultor do portal (laço de ferramentas somente leitura sobre o banco)
   rastro/api/            endpoints REST, dossiê PDF, assistente e consultor

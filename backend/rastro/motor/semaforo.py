@@ -17,7 +17,7 @@ def _brl(valor: Decimal | None) -> str:
 
 
 def classificar(d: DadosEmenda) -> tuple[str, str]:
-    """Ordem: cinza → verde → amarelo → (vermelho | azul) → cinza."""
+    """Ordem: cinza → verde → amarelo (inclui execução declarada no relatório final) → (vermelho | azul) → cinza."""
     if d.primeiro_pagamento is None:
         return "cinza", "Dados insuficientes: ainda não há pagamento registrado no Transferegov."
     if not d.codigo_ibge:
@@ -27,6 +27,7 @@ def classificar(d: DadosEmenda) -> tuple[str, str]:
 
     validas = d.evidencias_validas
     contratos = [c for c in validas if c.eh_contrato]
+    nota = _nota_declarada(d)
     if contratos:
         com_valor = [c.valor for c in contratos if c.valor]
         cobertura = (sum(com_valor) / d.valor_repassado) if (com_valor and d.valor_repassado) else None
@@ -37,16 +38,25 @@ def classificar(d: DadosEmenda) -> tuple[str, str]:
                 f"(confiança {melhor.confianca:.0%}"
             )
             texto += f"; contratos somam {cobertura:.0%} do repassado)." if cobertura is not None else ")."
-            return "verde", texto
+            return "verde", texto + nota
         return "amarelo", (
             f"Evidência parcial: contrato(s) compatível(is) somam {_brl(sum(com_valor))}, "
-            f"{cobertura:.0%} do valor repassado ({_brl(d.valor_repassado)})."
+            f"{cobertura:.0%} do valor repassado ({_brl(d.valor_repassado)})." + nota
         )
     if validas:
         melhor = max(validas, key=lambda c: c.confianca)
         return "amarelo", (
             f"Evidência parcial: {_ato(melhor.tipo_ato)} compatível encontrado(a) em {_fonte(melhor.fonte)}, "
-            "ainda sem contrato localizado."
+            "ainda sem contrato localizado." + nota
+        )
+
+    # Relatório de gestão final: declaração do próprio ente. Nunca leva a verde (que exige documento independente).
+    if d.execucao_final_declarada:
+        return "amarelo", (
+            f"Execução declarada pelo ente: o relatório de gestão final no Transferegov declara "
+            f"{_brl(d.execucao_declarada)} executados ({d.fracao_declarada:.0%} do repassado). Nenhum documento "
+            "independente (contrato ou contratação) foi localizado nas fontes consultadas; a declaração não "
+            "substitui o documento."
         )
 
     if d.em_revisao:
@@ -79,6 +89,12 @@ def classificar(d: DadosEmenda) -> tuple[str, str]:
         f"Dentro do prazo de referência: pago há {dias} dias (prazo de {d.prazo_dias}); "
         "ainda sem evidência encontrada nas fontes consultadas."
     )
+
+
+def _nota_declarada(d: DadosEmenda) -> str:
+    if d.fracao_declarada is None:
+        return ""
+    return f" O ente declarou no relatório de gestão final {d.fracao_declarada:.0%} do repassado como executado."
 
 
 def _fonte(fonte: str) -> str:

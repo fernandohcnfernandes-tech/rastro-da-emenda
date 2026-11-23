@@ -19,7 +19,7 @@ from rastro.config import config
 from rastro.log import log
 from rastro.motor.ia import _cache_gravar, _cache_ler
 
-VERSAO = "2"  # 2: fontes oficiais apontam para as páginas públicas do Transferegov
+VERSAO = "3"  # 2: fontes oficiais públicas. 3: relatório de gestão como execução declarada
 LIMITE_LISTA = 20
 
 SISTEMA = """Você é o consultor de dados do Rastro da Emenda ({site}), portal público que acompanha a execução das \
@@ -28,7 +28,8 @@ perguntas de cidadãos, jornalistas e órgãos de controle sobre os dados do por
 
 Como os dados funcionam:
 - Cada plano de ação (emenda) recebe um status: verde (execução com evidência: contrato compatível cobrindo ≥ 70% do \
-repasse), amarelo (evidência parcial), vermelho (indício para apuração: pago há mais de 180 dias sem evidência nas \
+repasse), amarelo (evidência parcial, ou execução declarada pelo ente no relatório de gestão final \
+sem documento independente), vermelho (indício para apuração: pago há mais de 180 dias sem evidência nas \
 fontes que cobrem o ente), azul (ente sem fonte pública para verificar — neutro) e cinza (dados insuficientes, \
 pagamento recente, verificação em andamento ou em revisão).
 - Fontes: Transferegov e Portal da Transparência (emendas e pagamentos), PNCP (contratos e licitações), Tribunais de \
@@ -55,7 +56,7 @@ _FILTROS = {
     "parlamentar": {"type": "string", "description": "parte do nome do parlamentar autor"},
     "ano": {"type": "integer", "description": "ano da emenda"},
     "status": {"type": "string", "enum": ["verde", "amarelo", "vermelho", "azul", "cinza"]},
-    "alerta": {"type": "string", "enum": ["A1", "A2", "A3", "A4", "A5", "A6", "A7"]},
+    "alerta": {"type": "string", "enum": ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8"]},
     "esfera": {"type": "string", "enum": ["municipal", "estadual"], "description": "estadual inclui o DF"},
     "busca": {"type": "string", "description": "texto livre: beneficiário, objeto (ex.: 'ambulância'), número"},
 }

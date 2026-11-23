@@ -22,10 +22,11 @@ from rastro.jobs.execucao import Execucao
 from rastro.log import cronometro
 from rastro.motor import ia, semaforo
 from rastro.motor.pre_filtro import Evidencia, Similaridade, selecionar_candidatos
-from rastro.motor.regras import Correspondencia, DadosEmenda
+from rastro.motor.regras import Correspondencia, DadosEmenda, Relatorio
 
 PARALELISMO_IA = 8  # chamadas simultâneas à IA (cada uma com sua conexão ao banco para o cache)
-VERSAO_MOTOR = "5"  # 2: similaridade palavras + caracteres; fonte TCE. 3: faixa "em revisão"
+VERSAO_MOTOR = "6"  # 2: similaridade palavras + caracteres; fonte TCE. 3: faixa "em revisão"
+# 6: relatório de gestão final como execução declarada (amarelo) e alerta A8
 
 SQL_PLANOS = """
 SELECT p.id_plano_acao, p.uf_beneficiario AS uf, p.emenda_numero, p.cnpj_beneficiario,
@@ -38,7 +39,8 @@ SELECT p.id_plano_acao, p.uf_beneficiario AS uf, p.emenda_numero, p.cnpj_benefic
          WHERE e.id_plano_acao = p.id_plano_acao AND e.cnpj_executor IS NOT NULL) AS executores,
        (SELECT string_agg(e.objeto, ' ') FROM executor e WHERE e.id_plano_acao = p.id_plano_acao) AS objeto_executor,
        (SELECT string_agg(m.descricao, ' ') FROM meta m WHERE m.id_plano_acao = p.id_plano_acao) AS metas,
-       (SELECT json_agg(json_build_array(r.tipo, r.situacao)) FROM relatorio_gestao r
+       (SELECT json_agg(json_build_array(r.tipo, r.situacao, r.valor_executado, r.valor_pendente))
+         FROM relatorio_gestao r
          WHERE r.id_plano_acao = p.id_plano_acao) AS relatorios,
        a.hash_entrada AS hash_anterior
 FROM plano_acao p
@@ -55,6 +57,13 @@ FROM evidencia ev
 LEFT JOIN evidencia c ON c.fonte = 'pncp_contratacao' AND c.id_externo = ev.numero_controle_compra
 WHERE ev.cnpj_orgao = ANY(:cnpjs)
 """
+
+
+def _relatorio(r: list) -> Relatorio:
+    """[tipo, situação, valor_executado, valor_pendente] vindo do json_agg → Relatorio com Decimal."""
+    tipo, situacao, *valores = list(r) + [None, None]
+    executado, pendente = (None if v is None else Decimal(str(v)) for v in valores[:2])
+    return Relatorio(tipo, situacao, executado, pendente)
 
 
 def texto_da_emenda(p: Any) -> str:
@@ -204,7 +213,7 @@ def processar_uf(uf: str, somente: set[int] | None = None, forcar: bool = False)
                 pncp_verificado=pncp_verificado,
                 objeto=texto,
                 plano_generico=generico.generico and generico.confianca >= ia.CONFIANCA_MINIMA,
-                relatorios=[tuple(r) for r in (p.relatorios or [])],
+                relatorios=[_relatorio(r) for r in (p.relatorios or [])],
                 correspondencias=correspondencias,
                 prazo_dias=cfg.prazo_sem_evidencia_dias,
                 limite_populacao=cfg.limite_populacao_pequeno,

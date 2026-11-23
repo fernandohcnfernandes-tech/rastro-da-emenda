@@ -1,4 +1,4 @@
-"""Regras de alerta A1–A7 (indícios para apuração). Funções puras sobre `DadosEmenda`."""
+"""Regras de alerta A1–A8 (indícios para apuração). Funções puras sobre `DadosEmenda`."""
 
 from __future__ import annotations
 
@@ -12,7 +12,8 @@ PRAZO_PADRAO_DIAS = 180
 CONFIANCA_REVISAO = 0.45
 FAIXA_A7 = (0.5, 1.5)
 MINIMO_CAPITAL = Decimal("0.70")
-SITUACOES_RELATORIO_OK = {"DISPONIBILIZADO", "ENVIADO", "CONCLUIDO", "APROVADO", "ANALISADO"}
+SITUACOES_RELATORIO_OK = {"DISPONIBILIZADO", "ENVIADO", "ENVIADO_PARA_ANALISE", "CONCLUIDO", "APROVADO", "ANALISADO"}
+EXECUCAO_DECLARADA_MINIMA = Decimal("0.70")  # relatório final que declara ≥ 70% do repassado como executado
 TIPOS_CONTRATO = {"contrato", "extrato_contrato"}
 TIPOS_DIRETOS = {"dispensa", "inexigibilidade"}
 
@@ -53,6 +54,24 @@ class Correspondencia:
         return tipo in TIPOS_DIRETOS or "dispensa" in modalidade or "inexigib" in modalidade
 
 
+@dataclass(frozen=True)
+class Relatorio:
+    """Relatório de gestão do Transferegov: declaração do próprio ente, não documento independente."""
+
+    tipo: str | None
+    situacao: str | None
+    valor_executado: Decimal | None = None
+    valor_pendente: Decimal | None = None
+
+    @property
+    def entregue(self) -> bool:
+        return (self.situacao or "").upper() in SITUACOES_RELATORIO_OK
+
+    @property
+    def final(self) -> bool:
+        return self.entregue and (self.tipo or "").lower() == "final"
+
+
 @dataclass
 class DadosEmenda:
     id_plano_acao: int
@@ -71,10 +90,30 @@ class DadosEmenda:
     pncp_verificado: bool = True  # False enquanto a carga do PNCP não consultou nenhum CNPJ da emenda
     objeto: str | None = None
     plano_generico: bool | None = None
-    relatorios: list[tuple[str | None, str | None]] = field(default_factory=list)  # (tipo, situação)
+    relatorios: list[Relatorio] = field(default_factory=list)  # aceita também tuplas (tipo, situação, ...)
     correspondencias: list[Correspondencia] = field(default_factory=list)
     prazo_dias: int = PRAZO_PADRAO_DIAS
     limite_populacao: int = 20_000
+
+    def __post_init__(self) -> None:
+        self.relatorios = [r if isinstance(r, Relatorio) else Relatorio(*r) for r in self.relatorios]
+
+    @property
+    def execucao_declarada(self) -> Decimal | None:
+        """Maior valor executado declarado num relatório de gestão final entregue (None se não houver)."""
+        valores = [r.valor_executado for r in self.relatorios if r.final and r.valor_executado is not None]
+        return max(valores) if valores else None
+
+    @property
+    def fracao_declarada(self) -> Decimal | None:
+        if self.execucao_declarada is None or not self.valor_repassado:
+            return None
+        return self.execucao_declarada / self.valor_repassado
+
+    @property
+    def execucao_final_declarada(self) -> bool:
+        """Relatório final entregue declarando ≥ 70% do repassado como executado."""
+        return self.fracao_declarada is not None and self.fracao_declarada >= EXECUCAO_DECLARADA_MINIMA
 
     @property
     def dias_desde_pagamento(self) -> int | None:
@@ -125,7 +164,7 @@ def a3_relatorio_ausente(d: DadosEmenda) -> bool:
     dias = d.dias_desde_pagamento
     if dias is None or dias <= d.prazo_dias:
         return False
-    return not any((sit or "").upper() in SITUACOES_RELATORIO_OK for _, sit in d.relatorios)
+    return not any(r.entregue for r in d.relatorios)
 
 
 def a4_capital_abaixo_de_70(d: DadosEmenda) -> bool:
@@ -156,6 +195,11 @@ def a7_valor_desproporcional(d: DadosEmenda, faixa: tuple[float, float] = FAIXA_
     return not (faixa[0] <= razao <= faixa[1])
 
 
+def a8_execucao_declarada_baixa(d: DadosEmenda) -> bool:
+    """Relatório final entregue declara menos de 70% do repassado como executado."""
+    return d.fracao_declarada is not None and d.fracao_declarada < EXECUCAO_DECLARADA_MINIMA
+
+
 REGRAS = {
     "A1": a1_pago_sem_evidencia,
     "A2": a2_plano_generico,
@@ -164,6 +208,7 @@ REGRAS = {
     "A5": a5_objeto_divergente,
     "A6": a6_contratacao_direta,
     "A7": a7_valor_desproporcional,
+    "A8": a8_execucao_declarada_baixa,
 }
 
 DESCRICAO = {
@@ -174,6 +219,7 @@ DESCRICAO = {
     "A5": "Contrato do ente no período com objeto diferente do objeto da emenda",
     "A6": "Contratação direta (dispensa ou inexigibilidade) associada ao recurso",
     "A7": "Valor contratado muito acima ou abaixo do valor repassado",
+    "A8": "Relatório de gestão final declara menos de 70% do valor repassado como executado",
 }
 
 
