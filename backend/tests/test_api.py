@@ -312,3 +312,30 @@ def test_fontes_oficiais_apontam_para_paginas_publicas():
     )
     assert f["Portal da Transparência — emenda"].endswith("codigoEmenda=202442770003")
     assert fontes_oficiais(1, None)["Portal da Transparência — emenda"] is None
+
+
+def test_atualizacao_consulta_no_pncp_so_cnpjs_novos(cliente, monkeypatch) -> None:
+    """A atualização semanal consulta por completo só os CNPJs que nunca foram verificados no PNCP."""
+    from rastro.conectores import pncp
+    from rastro.db.conexao import transacao
+    from rastro.jobs import carga_pncp
+
+    # só CNPJs com pagamento têm o que buscar no PNCP
+    cnpjs = sorted(a.cnpj for a in carga_pncp.cnpjs_monitorados(date(2024, 1, 1)) if a.primeiro_pagamento)
+    assert cnpjs
+    with transacao() as conn:
+        conn.execute(text("DELETE FROM cobertura_pncp"))
+    consultados: list[str] = []
+
+    def contratos_falsos(_cli, cnpj, _ini, _fim):
+        consultados.append(cnpj)
+        return iter([])
+
+    monkeypatch.setattr(pncp, "contratos", contratos_falsos)
+    carga_pncp.carregar_contratos(date(2024, 1, 1), somente_novos=True)  # nunca verificados: consulta todos
+    assert sorted(consultados) == cnpjs
+    with transacao() as conn:  # mesmo verificado há 60 dias, não é "novo": não consulta de novo
+        conn.execute(text("UPDATE cobertura_pncp SET verificado_em = now() - interval '60 days'"))
+    consultados.clear()
+    carga_pncp.carregar_contratos(date(2024, 1, 1), somente_novos=True)
+    assert consultados == []

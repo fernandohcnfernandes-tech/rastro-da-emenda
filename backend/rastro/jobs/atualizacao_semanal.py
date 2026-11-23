@@ -1,7 +1,8 @@
 """Atualização semanal (idempotente; registro em `execucao_job`).
 
 1. Novidades do Transferegov e do Portal da Transparência (+ ligação CNPJ → IBGE de entes novos);
-2. PNCP (varredura nacional) e Querido Diário dos últimos 14 dias para os entes monitorados;
+2. PNCP (varredura nacional dos últimos 14 dias + consulta completa dos CNPJs novos, nunca verificados),
+   Tribunais de Contas e Querido Diário dos últimos 14 dias para os entes monitorados;
 3. reprocessamento do motor — só emendas cujo `hash_entrada` mudou;
 4. e-mail aos assinantes cujo status mudou (sem SMTP, apenas log);
 5. relatório em docs/relatorios/atualizacao-semanal-AAAA-MM-DD.md.
@@ -85,6 +86,7 @@ def executar(
             _etapa(resumo, "portal", carga_ibge_portal.carregar_portal, desde)
         if pncp:
             _etapa(resumo, "pncp", carga_pncp.atualizar_recentes, DIAS_JANELA)
+            _etapa(resumo, "pncp_cnpjs_novos", carga_pncp.carregar_contratos, desde, None, None, True)
         _etapa(resumo, "tce_rs", carga_tce.carregar_tce_rs, desde, [date.today().year])
         _etapa(resumo, "tce_pi", carga_tce.carregar_tce_pi, desde, date.today() - timedelta(days=DIAS_JANELA))
         _etapa(resumo, "tce_sp", carga_tce.carregar_tce_sp, desde, True)

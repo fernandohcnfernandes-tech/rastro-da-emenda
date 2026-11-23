@@ -70,19 +70,24 @@ def _gravar(evidencias: list[dict[str, Any]]) -> int:
         return upsert(conn, "evidencia", unicas.values(), ("fonte", "id_externo"))
 
 
-def carregar_contratos(desde: date, ate: date | None = None, ufs: list[str] | None = None) -> dict[str, Any]:
+def carregar_contratos(
+    desde: date, ate: date | None = None, ufs: list[str] | None = None, somente_novos: bool = False
+) -> dict[str, Any]:
+    """Consulta os contratos de cada CNPJ monitorado desde o 1º pagamento.
+
+    `somente_novos`: só os CNPJs que nunca tiveram a consulta completa (entes e executores que surgiram depois da
+    carga inicial). Usado pela atualização semanal, que de resto só varre os últimos 14 dias do PNCP."""
     ate = ate or date.today()
     tipo = "carga_inicial:pncp_contratos" + (f":{','.join(sorted(ufs))}" if ufs else "")
-    execucao = Execucao(tipo)
+    if somente_novos:
+        tipo = "atualizacao:pncp_cnpjs_novos"
+    execucao = Execucao(tipo, retomar=not somente_novos)
     feitos: set[str] = set(execucao.progresso.get("feitos", []))
-    # CNPJs já consultados recentemente (por esta ou por outra execução, inclusive em outro servidor) são pulados.
+    # CNPJs já consultados recentemente (por esta ou por outra execução, inclusive em outro servidor) são pulados;
+    # no modo `somente_novos`, qualquer CNPJ que já tenha sido consultado alguma vez.
+    filtro = "" if somente_novos else " WHERE verificado_em > now() - interval '7 days'"
     with transacao() as conn:
-        feitos |= {
-            r[0]
-            for r in conn.execute(
-                text("SELECT cnpj FROM cobertura_pncp WHERE verificado_em > now() - interval '7 days'")
-            )
-        }
+        feitos |= {r[0] for r in conn.execute(text("SELECT cnpj FROM cobertura_pncp" + filtro))}
     alvos = [
         a
         for a in cnpjs_monitorados(desde, ufs)
