@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse
 from datetime import date
 
-FONTES = ("transferegov", "portal", "ibge", "pncp", "querido_diario", "tce", "tce_rs", "congresso")
+FONTES = ("transferegov", "portal", "ibge", "pncp", "querido_diario", "tce", "tce_rs", "congresso", "siconfi")
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -49,6 +49,10 @@ def main(argv: list[str] | None = None) -> None:
 
         cqd.atualizar_cobertura()
         cqd.buscar_evidencias(desde, ufs=ufs)
+    elif args.fonte == "siconfi":
+        from rastro.jobs.carga_siconfi import carregar as carregar_siconfi
+
+        carregar_siconfi()
     elif args.fonte == "congresso":
         from rastro.jobs.carga_congresso import carregar_congresso
 
