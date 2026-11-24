@@ -35,6 +35,7 @@ ORDER BY 1
 COLUNAS = (
     "receita_1706 receita_2706 dotacao_1706 dotacao_2706 empenhado_1706 empenhado_2706"
     " liquidado_1706 liquidado_2706 pago_1706 pago_2706 rp_pago"
+    " preempenhado_1706 preempenhado_2706 bloqueado_1706 bloqueado_2706"
 ).split()
 
 

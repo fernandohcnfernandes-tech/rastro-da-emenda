@@ -23,7 +23,9 @@ SELECT codigo_ibge, ano, mes, sem_dados,
        empenhado_1706 + CASE WHEN ano > :ano0 THEN empenhado_2706 ELSE 0 END AS empenhado,
        pago_1706 + CASE WHEN ano > :ano0 THEN pago_2706 + rp_pago ELSE 0 END AS pago,
        receita_1706 + receita_2706 AS receita,
-       dotacao_1706 AS dotacao
+       dotacao_1706 AS dotacao,
+       preempenhado_1706 + preempenhado_2706 AS preempenhado,
+       bloqueado_1706 + bloqueado_2706 AS bloqueado
 FROM execucao_contabil WHERE codigo_ibge = ANY(:codigos) ORDER BY codigo_ibge, ano
 """
 
@@ -44,6 +46,9 @@ class ExecucaoContabil:
     recebido_ate_corte: Decimal  # pagas até 180 dias antes da referência
     corte: date
     dotacao: Decimal = Decimal(0)  # dotação atualizada na fonte 1706 (soma dos anos)
+    # saldos na referência (o crédito indisponível é encerrado no fim de cada ano: vale só o ano da referência)
+    preempenhado: Decimal = Decimal(0)  # crédito pré-empenhado: reserva para licitação/contrato em curso
+    bloqueado: Decimal = Decimal(0)  # crédito bloqueado (contingenciamento) e outras indisponibilidades
 
     @property
     def orca_na_fonte(self) -> bool:
@@ -65,6 +70,13 @@ class ExecucaoContabil:
             return None
         return self.empenhado / self.recebido_ate_corte
 
+    @property
+    def fracao_comprometida(self) -> Decimal | None:
+        """(Empenhado + pré-empenhado) ÷ recebido há mais de 180 dias. O bloqueio de crédito não conta."""
+        if not self.recebido_ate_corte:
+            return None
+        return (self.empenhado + self.preempenhado) / self.recebido_ate_corte
+
     def resumo(self) -> dict[str, Any]:
         return {
             "data_referencia": self.data_referencia.isoformat(),
@@ -73,6 +85,8 @@ class ExecucaoContabil:
             "receita_fonte_706": float(self.receita),
             "dotacao_fonte_706": float(self.dotacao),
             "empenhado": float(self.empenhado),
+            "preempenhado": float(self.preempenhado),
+            "bloqueado": float(self.bloqueado),
             "pago": float(self.pago),
             "usa_fonte": self.usa_fonte,
             "fracao_empenhada": None if self.fracao_empenhada is None else float(self.fracao_empenhada),
@@ -84,8 +98,9 @@ def montar(
     pagamentos: list[tuple[date, Decimal]],
     prazo_dias: int,
 ) -> ExecucaoContabil | None:
-    """`anos`: (ano, mês, sem_dados, empenhado, pago, receita[, dotação]). Exige matrizes de todos os anos até a
-    referência: um ano faltando subestimaria o empenhado e geraria falso "dinheiro parado"."""
+    """`anos`: (ano, mês, sem_dados, empenhado, pago, receita[, dotação, pré-empenhado, bloqueado]).
+    Exige matrizes de todos os anos até a referência: um ano faltando subestimaria o empenhado
+    e geraria falso "dinheiro parado"."""
     entregues = [a for a in anos if not a[2] and 1 <= a[1] <= 12]  # mês 0: aguardando (re)coleta
     if not entregues:
         return None
@@ -95,12 +110,15 @@ def montar(
     ref = date(ano_ref, mes_ref, calendar.monthrange(ano_ref, mes_ref)[1])
     corte = ref - timedelta(days=prazo_dias)
     considerados = [a for a in entregues if a[0] <= ano_ref]
+    na_ref = next(a for a in entregues if a[0] == ano_ref)
     return ExecucaoContabil(
         data_referencia=ref,
         empenhado=sum((Decimal(a[3]) for a in considerados), Decimal(0)),
         pago=sum((Decimal(a[4]) for a in considerados), Decimal(0)),
         receita=sum((Decimal(a[5]) for a in considerados), Decimal(0)),
         dotacao=sum((Decimal(a[6]) for a in considerados if len(a) > 6), Decimal(0)),
+        preempenhado=Decimal(na_ref[7]) if len(na_ref) > 7 else Decimal(0),
+        bloqueado=Decimal(na_ref[8]) if len(na_ref) > 8 else Decimal(0),
         recebido_ate_ref=sum((Decimal(v) for d, v in pagamentos if d <= ref), Decimal(0)),
         recebido_ate_corte=sum((Decimal(v) for d, v in pagamentos if d <= corte), Decimal(0)),
         corte=corte,
@@ -113,7 +131,7 @@ def carregar(conn: Any, codigos: list[str], prazo_dias: int) -> dict[str, Execuc
     anos: dict[str, list] = {}
     for r in conn.execute(text(SQL_CONTABIL), {"codigos": codigos, "ano0": ANO_INICIAL}):
         anos.setdefault(r.codigo_ibge, []).append(
-            (r.ano, r.mes, r.sem_dados, r.empenhado, r.pago, r.receita, r.dotacao)
+            (r.ano, r.mes, r.sem_dados, r.empenhado, r.pago, r.receita, r.dotacao, r.preempenhado, r.bloqueado)
         )
     pagamentos: dict[str, list] = {}
     for r in conn.execute(text(SQL_RECEBIDO), {"codigos": codigos}):

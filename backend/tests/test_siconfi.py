@@ -35,3 +35,16 @@ def test_agregar_soma_so_a_fonte_706_por_conta() -> None:
     assert t["pago_1706"] == Decimal(300)
     assert t["rp_pago"] == Decimal(25)
     assert t["pago_por_funcao"] == {"15": 300.0}
+
+
+def test_agregar_separa_pre_empenho_de_bloqueio() -> None:
+    t = siconfi.agregar(
+        [
+            linha("622120100", "1706", 900),  # bloqueio de crédito
+            linha("622120200", "2706", 400),  # crédito pré-empenhado
+            linha("622129900", "1706", 30),  # outras indisponibilidades
+        ]
+    )
+    assert t["preempenhado_2706"] == Decimal(400)
+    assert t["bloqueado_1706"] == Decimal(930)
+    assert t["dotacao_1706"] == Decimal(930) and t["dotacao_2706"] == Decimal(400)

@@ -104,6 +104,27 @@ def test_vermelho_exige_sinal_contrario_contabil() -> None:
     assert "irregular" not in just.lower() and "fraude" not in just.lower() and "desvio" not in just.lower()
 
 
+def test_pre_empenho_tira_do_vermelho_e_vira_em_andamento() -> None:
+    c = exec_contabil(empenhado="100000", preempenhado=D("50000"), bloqueado=D("90000"))
+    status, alertas, just = semaforo.avaliar(dados(contabil=c))
+    assert status == "cinza" and "A9" not in alertas
+    assert "Execução em andamento" in just and "pré-empenhados" in just and "38%" in just
+    assert "crédito bloqueado" in just
+
+
+def test_bloqueio_de_credito_nao_tira_do_vermelho() -> None:
+    c = exec_contabil(empenhado="100000", bloqueado=D("300000"))
+    status, alertas, just = semaforo.avaliar(dados(contabil=c))
+    assert status == "vermelho" and "A9" in alertas
+    assert "crédito bloqueado não é execução" in just
+
+
+def test_montar_usa_credito_indisponivel_so_do_ano_da_referencia() -> None:
+    anos = [(2024, 12, False, 10, 0, 100, 100, 999, 999), (2025, 6, False, 20, 0, 100, 100, 7, 3)]
+    c = contabil.montar(anos, [], 180)
+    assert c.preempenhado == 7 and c.bloqueado == 3 and c.empenhado == 30
+
+
 def test_azul_municipio_pequeno_sem_fonte() -> None:
     d = dados(populacao=8_000, obrigado_pncp=False, tem_registro_pncp=False, coberto_querido_diario=False)
     status, alertas, just = semaforo.avaliar(d)

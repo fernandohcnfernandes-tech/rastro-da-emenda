@@ -65,6 +65,8 @@ export interface ExecucaoContabil {
   recebido_ate_corte: number;
   receita_fonte_706: number;
   empenhado: number;
+  preempenhado?: number;
+  bloqueado?: number;
   pago: number;
   usa_fonte: boolean;
   fracao_empenhada: number | null;

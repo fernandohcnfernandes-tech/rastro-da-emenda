@@ -189,6 +189,18 @@ async function Conteudo({ params }: { params: Promise<{ id: string }> }) {
               <span className="text-apoio">Empenhado (fonte 706)</span>
               <span className="tabular-nums">{brl(contabil.empenhado)}</span>
             </li>
+            {!!contabil.preempenhado && (
+              <li className="flex justify-between py-2">
+                <span className="text-apoio">Pré-empenhado em {data(contabil.data_referencia)} (licitação ou contrato em curso)</span>
+                <span className="tabular-nums">{brl(contabil.preempenhado)}</span>
+              </li>
+            )}
+            {!!contabil.bloqueado && (
+              <li className="flex justify-between py-2">
+                <span className="text-apoio">Crédito bloqueado em {data(contabil.data_referencia)} (não é execução)</span>
+                <span className="tabular-nums">{brl(contabil.bloqueado)}</span>
+              </li>
+            )}
             <li className="flex justify-between py-2">
               <span className="text-apoio">Pago (fonte 706)</span>
               <span className="tabular-nums">{brl(contabil.pago)}</span>

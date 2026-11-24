@@ -94,14 +94,25 @@ def classificar(d: DadosEmenda) -> tuple[str, str]:
             "ainda sem evidência encontrada nas fontes consultadas." + nota
         )
 
+    if d.empenho_em_andamento:
+        c = d.contabil
+        return "cinza", (
+            f"Execução em andamento: pago há {dias} dias, ainda sem documento nas fontes consultadas. Até "
+            f"{c.data_referencia:%m/%Y}, a contabilidade enviada pelo ente ao Tesouro (SICONFI) registra "
+            f"{_brl(c.empenhado)} empenhados e {_brl(c.preempenhado)} pré-empenhados (reserva para licitação ou "
+            f"contrato em curso) com recursos de emendas Pix — {c.fracao_comprometida:.0%} do recebido até "
+            f"{c.corte:%d/%m/%Y}. O dado soma todas as emendas Pix do ente." + _nota_bloqueio(c)
+        )
+
     # Vermelho exige sinal contrário à execução, não apenas a ausência de documento.
     if d.recursos_sem_empenho:
         c = d.contabil
+        pre = f" e {_brl(c.preempenhado)} pré-empenhados" if c.preempenhado else ""
         return "vermelho", (
             f"Indício para apuração: pago há {dias} dias, sem documento nas fontes consultadas e, até "
             f"{c.data_referencia:%m/%Y}, a contabilidade enviada pelo ente ao Tesouro (SICONFI) registra só "
-            f"{_brl(c.empenhado)} empenhados com recursos de emendas Pix — {c.fracao_empenhada:.0%} do recebido "
-            f"até {c.corte:%d/%m/%Y} ({_brl(c.recebido_ate_corte)})."
+            f"{_brl(c.empenhado)} empenhados{pre} com recursos de emendas Pix — {c.fracao_comprometida:.0%} do "
+            f"recebido até {c.corte:%d/%m/%Y} ({_brl(c.recebido_ate_corte)})." + _nota_bloqueio(c)
         )
     if d.fracao_final_declarada is not None and d.fracao_final_declarada < EXECUCAO_DECLARADA_MINIMA:
         return "vermelho", (
@@ -129,6 +140,15 @@ def _nota_contabil(d: DadosEmenda) -> str:
     return (
         f" Contabilidade do ente (SICONFI, até {c.data_referencia:%m/%Y}): {c.fracao_empenhada:.0%} das emendas Pix "
         f"recebidas até {c.corte:%d/%m/%Y} empenhadas."
+    )
+
+
+def _nota_bloqueio(c) -> str:
+    if not c.bloqueado:
+        return ""
+    return (
+        f" Há ainda {_brl(c.bloqueado)} em crédito bloqueado (contingenciado ou contido) na fonte das emendas Pix; "
+        "crédito bloqueado não é execução."
     )
 
 

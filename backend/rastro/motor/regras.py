@@ -153,8 +153,17 @@ class DadosEmenda:
 
     @property
     def recursos_sem_empenho(self) -> bool:
-        """O ente empenhou < 30% das emendas Pix recebidas há mais de 180 dias."""
-        return self.contabil_aplicavel and self.contabil.fracao_empenhada < SEM_EMPENHO_MAXIMO
+        """O ente empenhou < 30% das emendas Pix recebidas há mais de 180 dias, mesmo somando o pré-empenho."""
+        return self.contabil_aplicavel and self.contabil.fracao_comprometida < SEM_EMPENHO_MAXIMO
+
+    @property
+    def empenho_em_andamento(self) -> bool:
+        """Empenhado < 30%, mas o pré-empenho (licitação ou contrato em curso) leva o comprometido a ≥ 30%."""
+        return (
+            self.contabil_aplicavel
+            and self.contabil.fracao_empenhada < SEM_EMPENHO_MAXIMO
+            and self.contabil.fracao_comprometida >= SEM_EMPENHO_MAXIMO
+        )
 
     @property
     def dias_desde_pagamento(self) -> int | None:
@@ -242,7 +251,7 @@ def a8_execucao_declarada_baixa(d: DadosEmenda) -> bool:
 
 
 def a9_recursos_sem_empenho(d: DadosEmenda) -> bool:
-    """Contabilidade do ente (SICONFI): menos de 30% das emendas Pix recebidas há mais de 180 dias foram empenhadas."""
+    """SICONFI: menos de 30% das emendas Pix recebidas há mais de 180 dias empenhadas ou pré-empenhadas."""
     return d.recursos_sem_empenho and not d.evidencias_validas
 
 
@@ -267,7 +276,8 @@ DESCRICAO = {
     "A6": "Contratação direta (dispensa ou inexigibilidade) associada ao recurso",
     "A7": "Valor contratado muito acima ou abaixo do valor repassado",
     "A8": "Relatório de gestão final declara menos de 70% do valor repassado como executado",
-    "A9": "Contabilidade do ente (SICONFI): menos de 30% das emendas Pix recebidas há mais de 180 dias empenhadas",
+    "A9": "Contabilidade do ente (SICONFI): menos de 30% das emendas Pix recebidas há mais de 180 dias empenhadas"
+    " ou pré-empenhadas",
 }
 
 

@@ -9,6 +9,8 @@ Confirmado em 23/11/2026 (Salgadinho/PE, Uarini/AM e Mirante da Serra/RO batem c
 Contas usadas (PCASP, classe 6):
 - 6.2.1.2 receita realizada;
 - 6.2.2.1 dotação atualizada (crédito disponível + indisponível + utilizado), para saber se o ente orça na fonte;
+- 6.2.2.1.2 crédito indisponível: .02 pré-empenhado (reserva para licitação/contrato em curso) e .01 bloqueio de
+  crédito / .99 outras indisponibilidades;
 - 6.2.2.1.3.01 a .04 crédito empenhado (a liquidar, em liquidação, liquidado a pagar, pago) e .05 a .07 empenho
   inscrito em restos a pagar — na matriz de dezembro o empenho não liquidado migra de .01/.02/.03 para .05/.06/.07;
 - 6.3.1.4 e 6.3.2.2 restos a pagar (não processados e processados) pagos.
@@ -84,6 +86,10 @@ def agregar(linhas: list[dict[str, Any]]) -> dict[str, Any]:
             t["rp_pago"] += valor
         elif conta.startswith("6221"):
             t[f"dotacao_{sufixo}"] += valor
+            if conta.startswith("6221202"):
+                t[f"preempenhado_{sufixo}"] += valor
+            elif conta.startswith("62212"):
+                t[f"bloqueado_{sufixo}"] += valor
         if conta[:7] in EMPENHADO:
             t[f"empenhado_{sufixo}"] += valor
             if conta[:7] in ("6221303", "6221304", "6221307"):

@@ -89,3 +89,10 @@ Motor v8 (reavalia tudo; respostas da IA vêm do cache). A metodologia e a sensi
 ## 24/11/2026 — Cor do ente no mapa: vermelho só a partir de 20% das emendas
 
 Até aqui, uma única emenda vermelha pintava o município ou estado inteiro de vermelho no mapa e nas listas. Com o vermelho restrito a sinal contrário à execução, isso exagerava: o governo do RN (1 vermelha, 2 verdes, 1 amarela, 19 azuis) aparecia vermelho. Decisão da equipe: o ente fica vermelho quando 20% ou mais das suas emendas são vermelhas; abaixo disso, vale a cor da maioria entre as demais (empate: a mais grave). As contagens por cor continuam visíveis no painel do ente.
+
+## 24/11/2026 — Pré-empenho conta como execução em andamento; bloqueio de crédito não
+
+Contexto: Joinville/SC ficou vermelho (A9) com cerca de R$ 23 mi em crédito indisponível na fonte 706. A conferência mostrou que o valor está na conta 6.2.2.1.2.01, **bloqueio de crédito** (contingenciamento ou contenção), e não em pré-empenho (6.2.2.1.2.02, reserva para licitação ou contrato em curso), onde Joinville tem R$ 0.
+
+Decisão (Fernando): só o pré-empenho conta. O conector grava, por ano, o pré-empenhado (.02) e o bloqueado (.01 e .99) da fonte 706 (migração 012, recoleta). Como o crédito indisponível é encerrado no fim de cada exercício, vale só o saldo do ano da matriz de referência. A9 passa a exigir empenhado + pré-empenhado < 30% do recebido há mais de 180 dias. Se só o empenhado está abaixo de 30% e o pré-empenho leva a soma a ≥ 30%, a emenda fica `cinza` ("execução em andamento"). O bloqueio não tira do vermelho; quando existe, a justificativa o cita e diz que crédito bloqueado não é execução. Joinville continua vermelho. Motor v10.
+
