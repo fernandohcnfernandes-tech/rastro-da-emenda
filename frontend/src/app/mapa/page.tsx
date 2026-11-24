@@ -9,7 +9,7 @@ export default function PaginaMapa() {
       <CabecalhoPagina
         rotulo="Explorar"
         titulo="Mapa do semáforo"
-        descricao="Cada município recebe a cor das emendas Pix que recebeu: vermelho se houver ao menos uma com indício; senão, a cor da maioria. Clique para ver o resumo."
+        descricao="Cada município recebe a cor das emendas Pix que recebeu: vermelho quando 20% ou mais delas têm indício; senão, a cor da maioria. Clique para ver o resumo."
       />
       <Cartao>
         <MapaBrasil painel />

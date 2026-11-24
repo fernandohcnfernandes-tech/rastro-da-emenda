@@ -344,11 +344,16 @@ def mapa_estados(conn: Connection) -> list[dict[str, Any]]:
     return linhas
 
 
+PROPORCAO_VERMELHO = 0.20  # ente fica vermelho no mapa quando ≥ 20% das emendas são vermelhas
+
+
 def status_predominante(contagens: dict[str, int]) -> str:
-    """Cor do município no mapa: vermelho se houver qualquer vermelho; senão a maioria entre os demais."""
-    if contagens.get("vermelho"):
+    """Cor do ente: vermelho se ≥ 20% das emendas forem vermelhas; senão a maioria entre as demais cores
+    (empate: a mais grave). Uma emenda vermelha isolada aparece na contagem, mas não pinta o ente inteiro."""
+    total = sum(contagens.get(s) or 0 for s in ORDEM_GRAVIDADE)
+    if total and (contagens.get("vermelho") or 0) >= total * PROPORCAO_VERMELHO:
         return "vermelho"
-    candidatos = {s: contagens.get(s, 0) for s in ("laranja", "amarelo", "verde", "azul", "cinza")}
+    candidatos = {s: contagens.get(s) or 0 for s in ("laranja", "amarelo", "verde", "azul", "cinza")}
     if not any(candidatos.values()):
         return "cinza"
     return max(candidatos, key=lambda s: (candidatos[s], ORDEM_GRAVIDADE[s]))

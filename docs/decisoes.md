@@ -85,3 +85,7 @@ Motor v8 (reavalia tudo; respostas da IA vêm do cache). A metodologia e a sensi
 
 **Decisão.** Empenhado passa a incluir .05–.07 (liquidado inclui .07). Nova coluna de dotação atualizada (6.2.2.1, migração 011, que força a recoleta). O sinal contábil só vale se a dotação na fonte 1706 for ≥ 50% da receita na fonte 706. Crédito indisponível alto (pré-empenho, ex.: Joinville R$ 22 mi em 2026) segue sem efeito no status. Motor v9.
 
+
+## 24/11/2026 — Cor do ente no mapa: vermelho só a partir de 20% das emendas
+
+Até aqui, uma única emenda vermelha pintava o município ou estado inteiro de vermelho no mapa e nas listas. Com o vermelho restrito a sinal contrário à execução, isso exagerava: o governo do RN (1 vermelha, 2 verdes, 1 amarela, 19 azuis) aparecia vermelho. Decisão da equipe: o ente fica vermelho quando 20% ou mais das suas emendas são vermelhas; abaixo disso, vale a cor da maioria entre as demais (empate: a mais grave). As contagens por cor continuam visíveis no painel do ente.

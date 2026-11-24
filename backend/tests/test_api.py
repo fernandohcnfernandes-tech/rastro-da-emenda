@@ -204,7 +204,9 @@ def test_atualizacao(cliente) -> None:
 def test_status_predominante() -> None:
     from rastro.api.consultas import status_predominante
 
-    assert status_predominante({"vermelho": 1, "verde": 9}) == "vermelho"
+    assert status_predominante({"vermelho": 2, "verde": 8}) == "vermelho"  # 20%
+    assert status_predominante({"vermelho": 1, "verde": 2, "amarelo": 1, "azul": 19}) == "azul"  # RN: 1 de 23
+    assert status_predominante({"vermelho": 1}) == "vermelho"
     assert status_predominante({"verde": 3, "azul": 1}) == "verde"
     assert status_predominante({"amarelo": 1, "verde": 1}) == "amarelo"
     assert status_predominante({"laranja": 2, "verde": 1}) == "laranja"
