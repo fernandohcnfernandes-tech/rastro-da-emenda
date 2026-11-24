@@ -25,10 +25,11 @@ from rastro.motor.pre_filtro import Evidencia, Similaridade, selecionar_candidat
 from rastro.motor.regras import Correspondencia, DadosEmenda, Relatorio
 
 PARALELISMO_IA = 8  # chamadas simultâneas à IA (cada uma com sua conexão ao banco para o cache)
-VERSAO_MOTOR = "8"  # 2: similaridade palavras + caracteres; fonte TCE. 3: faixa "em revisão"
+VERSAO_MOTOR = "9"  # 2: similaridade palavras + caracteres; fonte TCE. 3: faixa "em revisão"
 # 6: relatório de gestão final como execução declarada (amarelo) e alerta A8. 7: "em revisão" passa a ser laranja
 # 8: vermelho só com sinal contrário (SICONFI sem empenho, A9; ou relatório final < 70%); sem documento → azul;
 #    execução contábil (SICONFI) e relatórios parciais entram como execução declarada (amarelo)
+# 9: SICONFI soma o empenho inscrito em restos a pagar (matriz de dezembro) e só julga ente que orça na fonte 706
 
 SQL_PLANOS = """
 SELECT p.id_plano_acao, p.uf_beneficiario AS uf, p.emenda_numero, p.cnpj_beneficiario,

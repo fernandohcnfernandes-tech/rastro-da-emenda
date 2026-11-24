@@ -38,6 +38,7 @@ def exec_contabil(empenhado: str = "350000", receita: str = "400000", recebido: 
     base = dict(
         data_referencia=ref,
         receita=D(receita),
+        dotacao=D(receita),
         empenhado=D(empenhado),
         pago=D(empenhado),
         recebido_ate_ref=D(recebido),
@@ -410,6 +411,12 @@ def test_ente_que_nao_usa_a_fonte_706_nao_gera_sinal() -> None:
     d = dados(contabil=exec_contabil(empenhado="0", receita="0"))
     assert not d.contabil_aplicavel
     assert semaforo.avaliar(d)[0] == "azul"
+
+
+def test_ente_que_nao_orca_na_fonte_706_nao_gera_sinal() -> None:
+    d = dados(contabil=exec_contabil(empenhado="0", dotacao=D("50000")))
+    assert not d.contabil_aplicavel
+    assert semaforo.avaliar(d)[0] == "azul" and "A9" not in semaforo.avaliar(d)[1]
 
 
 def test_emenda_paga_depois_do_corte_nao_e_julgada_pela_contabilidade() -> None:

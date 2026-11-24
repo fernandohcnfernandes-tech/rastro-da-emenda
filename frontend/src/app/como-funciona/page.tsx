@@ -183,7 +183,7 @@ export default function ComoFunciona() {
           <li>
             <strong>Sensibilidade da busca de documentos:</strong> nas 1.817 emendas cujo relatório de gestão final declara 70% ou mais executado, a busca
             automática encontrou contrato ou contratação compatível em 22% (23/11/2026). Por isso a falta de documento, sozinha, leva a azul, e o vermelho
-            exige um sinal contrário. A contabilidade do SICONFI é agregada por ente e declarada pelo próprio ente; entes que não classificam as emendas Pix na
+            exige um sinal contrário. A contabilidade do SICONFI é agregada por ente e declarada pelo próprio ente; entes que não recebem ou não orçam as emendas Pix na
             fonte 706, ou sem a matriz de algum ano, ficam sem esse sinal.
           </li>
           <li>Dados pessoais: CPF de fornecedor pessoa física aparece mascarado e o nome é omitido.</li>

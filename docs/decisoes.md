@@ -76,3 +76,12 @@ O cinza juntava situações diferentes: falta de dados, prazo ainda correndo, en
 4. **Contratações do PNCP** (avisos, pregões, dispensas, inexigibilidades), carga nacional por UF × modalidade × mês, rodando direto em produção (fonte única da verdade desde 23/11).
 
 Motor v8 (reavalia tudo; respostas da IA vêm do cache). A metodologia e a sensibilidade de ~22% estão publicadas em "Como funciona".
+
+## 24/11/2026 — Conferência dos vermelhos do motor v8: correções no SICONFI
+
+**Conferência.** Dos 5.764 vermelhos após a primeira rodada do v8, 4.937 eram avaliações antigas (v7): o grupo A do motor parou depois de TO e BA, CE, PA, PB, PE, GO, ES, AL, DF, AC e AP não foram reprocessadas. Rodadas de novo. Nas UFs já no v8, o vermelho vinha de 36 casos de A8 e 791 de A9. A leitura da MSC de cinco entes com A9 mostrou dois problemas:
+1. Na matriz de dezembro o empenho não liquidado sai de 6.2.2.1.3.01–.03 e vai para .05–.07 (inscrito em restos a pagar). O conector só somava .01–.04 e subestimava o empenho dos anos encerrados (Uberlândia: −R$ 0,8 mi em 2024; Caxias do Sul: −R$ 1,4 mi em 2024–2025).
+2. Há entes que recebem na fonte 706, mas não orçam nela (Orleans/SC sem dotação; Itaporanga d'Ajuda/SE com R$ 1,1 mi de dotação para R$ 8,4 mi recebidos): executam por outra fonte, e "0% empenhado" ali é classificação, não dinheiro parado.
+
+**Decisão.** Empenhado passa a incluir .05–.07 (liquidado inclui .07). Nova coluna de dotação atualizada (6.2.2.1, migração 011, que força a recoleta). O sinal contábil só vale se a dotação na fonte 1706 for ≥ 50% da receita na fonte 706. Crédito indisponível alto (pré-empenho, ex.: Joinville R$ 22 mi em 2026) segue sem efeito no status. Motor v9.
+

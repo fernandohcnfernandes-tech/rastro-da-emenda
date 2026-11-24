@@ -201,7 +201,7 @@ async function Conteudo({ params }: { params: Promise<{ id: string }> }) {
             </li>
             {!contabil.usa_fonte && (
               <li className="py-2 text-xs text-discreto">
-                O ente não registra as emendas Pix na fonte 706 (receita abaixo de metade do recebido); o dado não é usado no semáforo.
+                O ente não registra ou não orça as emendas Pix na fonte 706 (receita abaixo de metade do recebido ou dotação abaixo de metade da receita); o dado não é usado no semáforo.
               </li>
             )}
           </ul>

@@ -23,12 +23,15 @@ def test_agregar_soma_so_a_fonte_706_por_conta() -> None:
             linha("622130400", "1706", 300, "15"),  # pago
             linha("631400000", "2706", 20),  # restos a pagar não processados pagos
             linha("632200000", "1706", 5),  # restos a pagar processados pagos
-            linha("622110000", "1706", 7777),  # crédito disponível: não é execução
+            linha("622110000", "1706", 7777),  # crédito disponível: não é execução, mas é dotação
+            linha("622130500", "1706", 60),  # dezembro: empenho a liquidar inscrito em restos a pagar
+            linha("622130700", "2706", 10),  # dezembro: liquidado inscrito em restos a pagar processados
         ]
     )
     assert t["receita_1706"] == Decimal(1000)
-    assert t["empenhado_1706"] == Decimal(400) and t["empenhado_2706"] == Decimal(50)
-    assert t["liquidado_1706"] == Decimal(300) and t["liquidado_2706"] == Decimal(50)
+    assert t["empenhado_1706"] == Decimal(460) and t["empenhado_2706"] == Decimal(60)
+    assert t["liquidado_1706"] == Decimal(300) and t["liquidado_2706"] == Decimal(60)
+    assert t["dotacao_1706"] == Decimal(7777 + 460) and t["dotacao_2706"] == Decimal(60)
     assert t["pago_1706"] == Decimal(300)
     assert t["rp_pago"] == Decimal(25)
     assert t["pago_por_funcao"] == {"15": 300.0}

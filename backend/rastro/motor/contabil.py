@@ -16,12 +16,14 @@ from sqlalchemy import text
 
 ANO_INICIAL = 2024
 USO_DA_FONTE_MINIMO = Decimal("0.50")  # receita na fonte 706 ≥ 50% do recebido: o ente classifica as emendas Pix nela
+ORCAMENTO_MINIMO = Decimal("0.50")  # dotação na fonte 706 ≥ 50% da receita: o ente também orça e gasta por ela
 
 SQL_CONTABIL = """
 SELECT codigo_ibge, ano, mes, sem_dados,
        empenhado_1706 + CASE WHEN ano > :ano0 THEN empenhado_2706 ELSE 0 END AS empenhado,
        pago_1706 + CASE WHEN ano > :ano0 THEN pago_2706 + rp_pago ELSE 0 END AS pago,
-       receita_1706 + receita_2706 AS receita
+       receita_1706 + receita_2706 AS receita,
+       dotacao_1706 AS dotacao
 FROM execucao_contabil WHERE codigo_ibge = ANY(:codigos) ORDER BY codigo_ibge, ano
 """
 
@@ -41,10 +43,20 @@ class ExecucaoContabil:
     recebido_ate_ref: Decimal  # emendas Pix pagas ao ente até a referência (Transferegov)
     recebido_ate_corte: Decimal  # pagas até 180 dias antes da referência
     corte: date
+    dotacao: Decimal = Decimal(0)  # dotação atualizada na fonte 1706 (soma dos anos)
+
+    @property
+    def orca_na_fonte(self) -> bool:
+        """Ente que recebe na fonte 706 mas não orça nela executa por outra fonte: empenho zero não diz nada."""
+        return self.receita > 0 and self.dotacao >= self.receita * ORCAMENTO_MINIMO
 
     @property
     def usa_fonte(self) -> bool:
-        return self.recebido_ate_ref > 0 and self.receita >= self.recebido_ate_ref * USO_DA_FONTE_MINIMO
+        return (
+            self.recebido_ate_ref > 0
+            and self.receita >= self.recebido_ate_ref * USO_DA_FONTE_MINIMO
+            and self.orca_na_fonte
+        )
 
     @property
     def fracao_empenhada(self) -> Decimal | None:
@@ -59,6 +71,7 @@ class ExecucaoContabil:
             "recebido": float(self.recebido_ate_ref),
             "recebido_ate_corte": float(self.recebido_ate_corte),
             "receita_fonte_706": float(self.receita),
+            "dotacao_fonte_706": float(self.dotacao),
             "empenhado": float(self.empenhado),
             "pago": float(self.pago),
             "usa_fonte": self.usa_fonte,
@@ -67,12 +80,12 @@ class ExecucaoContabil:
 
 
 def montar(
-    anos: list[tuple[int, int, bool, Decimal, Decimal, Decimal]],
+    anos: list[tuple],
     pagamentos: list[tuple[date, Decimal]],
     prazo_dias: int,
 ) -> ExecucaoContabil | None:
-    """`anos`: (ano, mês, sem_dados, empenhado, pago, receita). Exige matrizes de todos os anos até a referência:
-    um ano faltando subestimaria o empenhado e geraria falso "dinheiro parado"."""
+    """`anos`: (ano, mês, sem_dados, empenhado, pago, receita[, dotação]). Exige matrizes de todos os anos até a
+    referência: um ano faltando subestimaria o empenhado e geraria falso "dinheiro parado"."""
     entregues = [a for a in anos if not a[2]]
     if not entregues:
         return None
@@ -87,6 +100,7 @@ def montar(
         empenhado=sum((Decimal(a[3]) for a in considerados), Decimal(0)),
         pago=sum((Decimal(a[4]) for a in considerados), Decimal(0)),
         receita=sum((Decimal(a[5]) for a in considerados), Decimal(0)),
+        dotacao=sum((Decimal(a[6]) for a in considerados if len(a) > 6), Decimal(0)),
         recebido_ate_ref=sum((Decimal(v) for d, v in pagamentos if d <= ref), Decimal(0)),
         recebido_ate_corte=sum((Decimal(v) for d, v in pagamentos if d <= corte), Decimal(0)),
         corte=corte,
@@ -98,7 +112,9 @@ def carregar(conn: Any, codigos: list[str], prazo_dias: int) -> dict[str, Execuc
         return {}
     anos: dict[str, list] = {}
     for r in conn.execute(text(SQL_CONTABIL), {"codigos": codigos, "ano0": ANO_INICIAL}):
-        anos.setdefault(r.codigo_ibge, []).append((r.ano, r.mes, r.sem_dados, r.empenhado, r.pago, r.receita))
+        anos.setdefault(r.codigo_ibge, []).append(
+            (r.ano, r.mes, r.sem_dados, r.empenhado, r.pago, r.receita, r.dotacao)
+        )
     pagamentos: dict[str, list] = {}
     for r in conn.execute(text(SQL_RECEBIDO), {"codigos": codigos}):
         pagamentos.setdefault(r.codigo_ibge, []).append((r.data_pagamento, r.valor))
