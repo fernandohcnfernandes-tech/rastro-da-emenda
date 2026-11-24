@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { BotaoVoltar } from "./BotaoVoltar";
 import { SeletorTema } from "./SeletorTema";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -251,7 +252,12 @@ export function AppShell({ children, rodape }: { children: React.ReactNode; roda
           </form>
           <SeletorTema />
         </header>
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-8">{children}</main>
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-8">
+          <Suspense fallback={null}>
+            <BotaoVoltar />
+          </Suspense>
+          {children}
+        </main>
       </div>
     </div>
   );
