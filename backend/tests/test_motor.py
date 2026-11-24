@@ -438,3 +438,11 @@ def test_montar_exige_todos_os_anos_e_soma_pagamentos_ate_o_corte() -> None:
     assert c.recebido_ate_ref == D(400) and c.recebido_ate_corte == D(300) and c.fracao_empenhada == D(1)
     faltando = [(2024, 12, True, D(0), D(0), D(0)), (2025, 12, False, D(200), D(100), D(100))]
     assert contabil.montar(faltando, pagamentos, 180) is None
+
+
+def test_matriz_com_mes_zero_e_ignorada() -> None:
+    """Linha aguardando recoleta (mês 0) não derruba o motor: o ente fica sem sinal contábil."""
+    anos = [(2024, 12, False, D("1"), D("1"), D("1")), (2025, 0, False, D("1"), D("1"), D("1"))]
+    c = contabil.montar(anos, [(date(2024, 3, 1), D("10"))], 180)
+    assert c is not None and c.data_referencia == date(2024, 12, 31)
+    assert contabil.montar([(2024, 0, False, D("1"), D("1"), D("1"))], [], 180) is None

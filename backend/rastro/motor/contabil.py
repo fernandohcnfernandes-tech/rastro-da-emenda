@@ -86,7 +86,7 @@ def montar(
 ) -> ExecucaoContabil | None:
     """`anos`: (ano, mês, sem_dados, empenhado, pago, receita[, dotação]). Exige matrizes de todos os anos até a
     referência: um ano faltando subestimaria o empenhado e geraria falso "dinheiro parado"."""
-    entregues = [a for a in anos if not a[2]]
+    entregues = [a for a in anos if not a[2] and 1 <= a[1] <= 12]  # mês 0: aguardando (re)coleta
     if not entregues:
         return None
     ano_ref, mes_ref = max((a[0], a[1]) for a in entregues)
