@@ -202,7 +202,6 @@ export function AppShell({ children, rodape }: { children: React.ReactNode; roda
           <div className="space-y-2 px-3 text-[11px] leading-relaxed text-discreto">
             <p>O sistema aponta indícios para apuração, nunca acusações.</p>
             {rodape}
-            <p className="text-apoio">A próxima resposta pode transformar seu negócio.</p>
           </div>
         )}
         <button
