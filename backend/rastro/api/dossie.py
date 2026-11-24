@@ -26,7 +26,6 @@ ROTULO_STATUS = {
     "azul": "Sem evidência localizada",
     "cinza": "Dados insuficientes / dentro do prazo",
 }
-ASSINATURA = "A próxima resposta pode transformar seu negócio."
 
 
 def _t(texto: Any) -> str:
@@ -56,7 +55,7 @@ class Dossie(FPDF):
         self.set_y(-15)
         self.set_font("Helvetica", "I", 8)
         self.set_text_color(*APOIO)
-        self.cell(0, 5, _t(f"{ASSINATURA}   -   página {self.page_no()}"), align="C")
+        self.cell(0, 5, _t(f"Rastro da Emenda   -   página {self.page_no()}"), align="C")
 
     def secao(self, titulo: str) -> None:
         self.ln(3)

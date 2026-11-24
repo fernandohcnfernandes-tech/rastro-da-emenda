@@ -27,7 +27,7 @@ Projeto da equipe QKV para o Hack Brasil 2026, trilha **Logística & automação
 
 ## 4. Identidade visual (frontend e dossiê)
 
-Marca QKV works. Desde 22/11/2026 o frontend segue a linguagem visual do QKV OS (tema escuro azul-marinho, menu lateral recolhível), reescrita do zero: fundo `#05070c`, superfícies `#0b1424`/`#111c30`, bordas `#26385d`, texto `#f7f7f4`, apoio `#9fb0d8`, ação `#3a68ff`, rótulos `#75a7ff`; tokens em `frontend/src/app/globals.css`. Fonte Inter (via `next/font`, servida pelo próprio site). O dossiê PDF mantém `#0B0F1A`, `#2563EB`, `#64748B` e Helvetica. Logo: `frontend/public/marca/`. A assinatura "A próxima resposta pode transformar seu negócio." saiu do portal em 24/11/2026 (fora de contexto); permanece no dossiê PDF e no e-mail de alertas.
+Marca QKV works. Desde 22/11/2026 o frontend segue a linguagem visual do QKV OS (tema escuro azul-marinho, menu lateral recolhível), reescrita do zero: fundo `#05070c`, superfícies `#0b1424`/`#111c30`, bordas `#26385d`, texto `#f7f7f4`, apoio `#9fb0d8`, ação `#3a68ff`, rótulos `#75a7ff`; tokens em `frontend/src/app/globals.css`. Fonte Inter (via `next/font`, servida pelo próprio site). O dossiê PDF mantém `#0B0F1A`, `#2563EB`, `#64748B` e Helvetica. Logo: `frontend/public/marca/`. A assinatura "A próxima resposta pode transformar seu negócio." só aparece junto do logo/nome QKV works (e-mail de alertas, vídeo); solta, fora desse contexto, não se usa (removida do portal e do rodapé do dossiê em 24/11/2026).
 
 Cores do semáforo: verde `#16A34A`, amarelo `#EAB308`, laranja `#EA580C` (em revisão), vermelho `#DC2626`, azul `#2563EB`, cinza `#94A3B8`.
 
