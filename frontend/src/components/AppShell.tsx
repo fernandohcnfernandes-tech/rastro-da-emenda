@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { acessos } from "@/lib/acessos";
+
 import { BotaoVoltar } from "./BotaoVoltar";
 import { SeletorTema } from "./SeletorTema";
 import { usePathname, useRouter } from "next/navigation";
@@ -146,6 +148,11 @@ export function AppShell({ children, rodape }: { children: React.ReactNode; roda
   const [recolhido, alternar] = useMenuRecolhido();
   const [gaveta, setGaveta] = useState(false);
   const busca = useRef<HTMLInputElement>(null);
+
+  // Conta a visita uma vez por sessão, seja qual for a página de entrada.
+  useEffect(() => {
+    void acessos();
+  }, []);
 
   useEffect(() => {
     function atalho(e: KeyboardEvent) {

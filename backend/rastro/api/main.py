@@ -211,6 +211,64 @@ def assinar(nova: NovaAssinatura, conn: Conexao) -> dict:
     return {"ok": True, "mensagem": "Assinatura registrada. Você receberá e-mail quando o status mudar."}
 
 
+# ----------------------------------------------------------------------------------- contador de acessos
+
+LIMITE_ACESSOS_POR_IP = 30  # visitas contadas por IP a cada hora; o excesso é ignorado sem erro
+_acessos: dict[str, deque] = defaultdict(deque)
+_trava_acessos = threading.Lock()
+_HOJE = "(now() AT TIME ZONE 'America/Sao_Paulo')::date"
+
+
+def _ip(request: Request) -> str:
+    encaminhado = request.headers.get("x-forwarded-for")
+    return (encaminhado or (request.client.host if request.client else "?")).split(",")[0].strip()
+
+
+def _pode_contar(ip: str) -> bool:
+    agora = time.monotonic()
+    with _trava_acessos:
+        fila = _acessos[ip]
+        while fila and agora - fila[0] > 3600:
+            fila.popleft()
+        if len(fila) >= LIMITE_ACESSOS_POR_IP:
+            return False
+        fila.append(agora)
+        if len(_acessos) > 10_000:  # evita crescer sem limite
+            for chave in [k for k, v in _acessos.items() if not v]:
+                del _acessos[chave]
+        return True
+
+
+def _totais_acessos(conn: Connection) -> dict:
+    linha = conn.execute(
+        text(
+            f"SELECT coalesce(sum(visitas), 0) AS total, min(dia) AS desde, "
+            f"coalesce(sum(visitas) FILTER (WHERE dia = {_HOJE}), 0) AS hoje FROM acesso_diario"
+        )
+    ).one()
+    desde = linha.desde.isoformat() if linha.desde else None
+    return {"total": int(linha.total), "hoje": int(linha.hoje), "desde": desde}
+
+
+@app.get("/acessos")
+def acessos(conn: Conexao) -> dict:
+    return _totais_acessos(conn)
+
+
+@app.post("/acessos")
+def registrar_acesso(request: Request, conn: Conexao) -> dict:
+    """Conta uma visita (o site chama uma vez por sessão do navegador). Não guarda IP nem dado pessoal."""
+    if _pode_contar(_ip(request)):
+        conn.execute(
+            text(
+                f"INSERT INTO acesso_diario (dia, visitas) VALUES ({_HOJE}, 1) "
+                "ON CONFLICT (dia) DO UPDATE SET visitas = acesso_diario.visitas + 1"
+            )
+        )
+        conn.commit()
+    return _totais_acessos(conn)
+
+
 # ----------------------------------------------------------------------------------- assistente de IA
 
 LIMITE_POR_IP = 15  # perguntas por IP a cada 10 minutos

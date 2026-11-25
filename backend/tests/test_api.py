@@ -197,6 +197,21 @@ def test_assinaturas(cliente) -> None:
     assert cliente.post("/assinaturas", json={"email": "a@b.co", "tipo": "municipio", "chave": "12"}).status_code == 422
 
 
+def test_acessos(cliente) -> None:
+    from rastro.api import main
+
+    main._acessos.clear()
+    inicio = cliente.get("/acessos").json()
+    depois = cliente.post("/acessos").json()
+    assert depois["total"] == inicio["total"] + 1 and depois["hoje"] == inicio["hoje"] + 1 and depois["desde"]
+    assert cliente.get("/acessos").json() == depois
+    for _ in range(main.LIMITE_ACESSOS_POR_IP + 5):  # excesso do mesmo IP não conta
+        ultimo = cliente.post("/acessos").json()
+    assert ultimo["total"] == inicio["total"] + main.LIMITE_ACESSOS_POR_IP
+    outro_ip = cliente.post("/acessos", headers={"x-forwarded-for": "203.0.113.9"}).json()
+    assert outro_ip["total"] == ultimo["total"] + 1
+
+
 def test_atualizacao(cliente) -> None:
     assert "ultima_avaliacao" in cliente.get("/atualizacao").json()
 

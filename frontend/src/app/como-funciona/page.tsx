@@ -1,3 +1,4 @@
+import { ContadorAcessos } from "@/components/ContadorAcessos";
 import { CabecalhoPagina } from "@/components/ui";
 import { CORES, ROTULOS } from "@/lib/formato";
 import type { Status } from "@/lib/tipos";
@@ -189,6 +190,8 @@ export default function ComoFunciona() {
           <li>Dados pessoais: CPF de fornecedor pessoa física aparece mascarado e o nome é omitido.</li>
         </ul>
       </section>
+
+      <ContadorAcessos comHoje={false} />
 
       <p className="text-sm text-discreto">Projeto da equipe QKV para o Hack Brasil 2026 — trilha Logística & automação. Código aberto (licença MIT).</p>
     </article>

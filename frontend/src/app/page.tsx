@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { ContadorAcessos } from "@/components/ContadorAcessos";
 import { GraficoUF } from "@/components/GraficoUF";
 import { PainelVisaoGeral } from "@/components/PainelVisaoGeral";
 import { BotaoLink, Cartao, ErroApi, Rotulo, TituloCartao } from "@/components/ui";
@@ -77,6 +78,9 @@ export default function VisaoGeral() {
             Explorar emendas
           </BotaoLink>
           <BotaoLink href="/mapa">Ver o mapa</BotaoLink>
+          <span className="ml-auto self-center">
+            <ContadorAcessos />
+          </span>
         </div>
       </section>
       <Suspense fallback={<p className="text-sm text-apoio">Carregando indicadores…</p>}>

@@ -9,7 +9,12 @@ async function repassar(req: Request, caminho: string[]): Promise<Response> {
   const destino = `${API()}/${caminho.map(encodeURIComponent).join("/")}${origem.search}`;
   const resp = await fetch(destino, {
     method: req.method,
-    headers: { "content-type": req.headers.get("content-type") ?? "application/json", accept: "*/*" },
+    headers: {
+      "content-type": req.headers.get("content-type") ?? "application/json",
+      accept: "*/*",
+      // IP do visitante (posto pelo Caddy), para os limites por IP da API.
+      ...(req.headers.get("x-forwarded-for") ? { "x-forwarded-for": req.headers.get("x-forwarded-for")! } : {}),
+    },
     body: req.method === "POST" ? await req.text() : undefined,
   });
   return new Response(resp.body, {
@@ -25,7 +30,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ caminho: string
 export async function POST(req: Request, ctx: { params: Promise<{ caminho: string[] }> }) {
   const { caminho } = await ctx.params;
   const rota = caminho.join("/");
-  if (rota !== "assinaturas" && rota !== "assistente/perguntar" && !/^emendas\/\d+\/assistente$/.test(rota)) {
+  if (rota !== "assinaturas" && rota !== "acessos" && rota !== "assistente/perguntar" && !/^emendas\/\d+\/assistente$/.test(rota)) {
     return Response.json({ detail: "não permitido" }, { status: 405 });
   }
   return repassar(req, caminho);
