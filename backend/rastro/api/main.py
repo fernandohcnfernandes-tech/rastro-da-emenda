@@ -92,7 +92,8 @@ def emenda_dossie(id_plano_acao: int, conn: Conexao, request: Request, analise: 
     if not ficha:
         raise HTTPException(404, "Plano de ação não encontrado")
     texto_ia = None
-    if analise and config().anthropic_api_key:
+    cfg = config()
+    if analise and getattr(cfg, "dossie_com_analise", False) and cfg.anthropic_api_key:
         _limitar(request)
         try:
             texto_ia = assistente.responder(conn, id_plano_acao, assistente.PERGUNTA_DOSSIE)["resposta"]
@@ -272,7 +273,7 @@ def registrar_acesso(request: Request, conn: Conexao) -> dict:
 # ----------------------------------------------------------------------------------- assistente de IA
 
 LIMITE_POR_IP = 15  # perguntas por IP a cada 10 minutos
-LIMITE_GLOBAL = 400  # perguntas por hora no total (controle de custo)
+LIMITE_GLOBAL = 60  # perguntas por hora no total, por worker da API (controle de custo)
 _uso: dict[str, deque] = defaultdict(deque)
 _trava_uso = threading.Lock()
 

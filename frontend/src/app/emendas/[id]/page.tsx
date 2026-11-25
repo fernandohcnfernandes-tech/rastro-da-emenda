@@ -256,9 +256,14 @@ async function Conteudo({ params }: { params: Promise<{ id: string }> }) {
           <BotaoLink href={`/api/emendas/${f.id_plano_acao}/dossie.pdf`} primario externo>
             <Download className="h-4 w-4" /> Baixar dossiê (PDF)
           </BotaoLink>
-          <BotaoLink href={`/api/emendas/${f.id_plano_acao}/dossie.pdf?analise=true`} externo>
-            <Sparkles className="h-4 w-4" /> Dossiê com análise da IA
-          </BotaoLink>
+          {/* Desativado em 25/11/2026: robôs seguiam o link e geravam uma análise da IA por emenda. */}
+          <span
+            aria-disabled="true"
+            title="Temporariamente indisponível"
+            className="inline-flex min-h-10 cursor-not-allowed items-center gap-2 rounded-lg border border-borda bg-superficie-2 px-4 text-sm font-medium text-discreto opacity-60"
+          >
+            <Sparkles className="h-4 w-4" /> Dossiê com análise da IA (indisponível)
+          </span>
         </div>
       </header>
       <p className="max-w-4xl text-[15px] leading-relaxed text-cinza-claro">{f.justificativa ?? "Ainda não avaliada."}</p>

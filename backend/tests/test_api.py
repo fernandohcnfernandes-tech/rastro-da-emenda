@@ -290,6 +290,30 @@ def test_assistente_sem_chave_e_com_resposta(cliente, monkeypatch) -> None:
     assert pdf.status_code == 200 and pdf.content.startswith(b"%PDF")
 
 
+def test_dossie_com_analise_desativado(cliente, monkeypatch) -> None:
+    from rastro.api import main
+
+    chamadas: list[int] = []
+
+    def responder(conn, i, p, h=None):
+        chamadas.append(i)
+        return {"resposta": "análise", "cache": False}
+
+    monkeypatch.setattr(main.assistente, "responder", responder)
+    for ligado, esperado in ((False, 0), (True, 1)):
+        monkeypatch.setattr(
+            main,
+            "config",
+            lambda ligado=ligado: type(
+                "C", (), {"anthropic_api_key": "k", "modelo_analise": "m", "dossie_com_analise": ligado}
+            )(),
+        )
+        main._uso.clear()
+        pdf = cliente.get("/emendas/1/dossie.pdf", params={"analise": "true"})
+        assert pdf.status_code == 200 and pdf.content.startswith(b"%PDF")
+        assert len(chamadas) == esperado
+
+
 def test_ferramentas_do_consultor_no_banco(cliente) -> None:
     from rastro.agente import consultor
 

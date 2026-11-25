@@ -194,7 +194,7 @@ export function BotaoLink({
       : "border-borda bg-superficie-2 text-cinza-claro hover:border-primaria hover:text-forte"
   }`;
   return externo ? (
-    <a href={href} className={classe} target="_blank" rel="noreferrer">
+    <a href={href} className={classe} target="_blank" rel="noreferrer nofollow">
       {children}
     </a>
   ) : (

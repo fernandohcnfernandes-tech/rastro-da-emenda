@@ -17,6 +17,9 @@ class Config(BaseSettings):
     modelo_motor: str = ""  # vazio = MODELO_ANALISE para contratos e MODELO_RAPIDO para diários
     modelo_rapido: str = "claude-haiku-5-5"
     modelo_analise: str = "claude-sonnet-5-5"
+    # Dossiê com análise da IA: desativado em 25/11/2026 (robôs seguiam o link e geravam uma análise do Sonnet
+    # por emenda). Só volta com DOSSIE_COM_ANALISE=true.
+    dossie_com_analise: bool = False
 
     portal_transparencia_api_key: str = ""
 
